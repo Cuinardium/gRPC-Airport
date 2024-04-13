@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+import "common.proto";
+
+
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+  EVENT_TYPE_COUNTERS_ASSIGNED = 1;
+  EVENT_TYPE_COUNTERS_FREED = 2;
+  EVENT_TYPE_PASSENGER_ARRIVED = 3;
+  EVENT_TYPE_PASSENGER_CHECKED_IN = 4;
+  EVENT_TYPE_ASSIGNATION_PENDING = 5;
+  EVENT_TYPE_MOVED_IN_ASSIGNATION_QUEUE = 6;
+}
+
+message CountersAssignedInfo {
+  string sector_name = 1;
+  CounterRange counters = 2;
+  repeated string flights = 3;
+}
+
+message CountersFreedInfo {
+  string sector_name = 1;
+  CounterRange counters = 2;
+  repeated string flights = 3;
+}
+
+message PassengerArrivedInfo {
+  string booking = 1;
+  string flight = 2;
+  string sector_name = 3;
+  CounterRange counters = 4;
+  int32 passengers_in_queue = 5;
+}
+
+message PassengerCheckedInInfo {
+  string booking = 1;
+  string flight = 2;
+  string sector_name = 3;
+  int32 counter = 4;
+}
+
+message AssignationPendingInfo {
+  string sector_name = 1;
+  repeated string flights = 2;
+  int32 counter_count = 3;
+  int32 pending_assignations = 4;
+}
+
+message MovedInAssignationQueueInfo {
+  string sector_name = 1;
+  repeated string flights = 2;
+  int32 counter_count = 3;
+  int32 pending_assignations = 4;
+}
+
+// Events (Servicio de Notificaciones de Aerolínea)
+
+service EventsService {
+  rpc Register(RegisterRequest) returns (stream RegisterResponse);
+  rpc Unregister(UnregisterRequest) returns (UnregisterResponse);
+}
+
+// --
+
+message RegisterRequest {
+  string airline = 1;
+}
+
+message RegisterResponse {
+  EventType event_type = 1;
+
+  // Uno solo por cada tipo de evento
+  CountersAssignedInfo counters_assigned_info = 2;
+  CountersFreedInfo counters_freed_info = 3;
+  PassengerArrivedInfo passenger_arrived_info = 4;
+  PassengerCheckedInInfo passenger_checked_in_info = 5;
+  AssignationPendingInfo assignation_pending_info = 6;
+  MovedInAssignationQueueInfo moved_in_assignation_queue_info = 7;
+}
+
+// --
+
+message UnregisterRequest {
+  string airline = 2;
+}
+
+message UnregisterResponse {}

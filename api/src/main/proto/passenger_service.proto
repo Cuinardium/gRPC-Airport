@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+import "common.proto";
+
+enum FlightStatus {
+  FLIGHT_STATUS_UNSPECIFIED = 0;
+  FLIGHT_STATUS_ASSIGNED = 1;
+  FLIGHT_STATUS_UNASSIGNED = 2;
+}
+
+enum PassengerStatus {
+    PASSENGER_STATUS_UNSPECIFIED = 0;
+    PASSENGER_STATUS_CHECKED_IN = 1;
+    PASSENGER_STATUS_WAITING = 2;
+    PASSENGER_STATUS_NOT_ARRIVED = 3;
+}
+
+
+// Passenger (Servicio de Check-in de Pasajeros)
+
+service PassengerService {
+  rpc FetchCounter(FetchCounterRequest) returns (FetchCounterResponse);
+  rpc PassengerCheckin(PassengerCheckinRequest) returns (PassengerCheckinResponse);
+  rpc PassengerStatus(PassengerStatusRequest) returns (PassengerStatusResponse);
+}
+
+// --
+
+message FetchCounterRequest {
+  string booking = 1;
+}
+
+message FetchCounterResponse {
+  FlightStatus status = 1;
+
+  // Para ambos estados
+  string flight = 2;
+  string airline = 3;
+  CounterRange counters = 4;
+
+  // Solo si se asigno el vuelo a un mostrador
+  int32 passengers_in_queue = 5;
+}
+
+// --
+
+message PassengerCheckinRequest {
+  string booking = 1;
+  string sector_name = 2;
+  int32 counter = 3;
+}
+
+message PassengerCheckinResponse {
+  string flight = 1;
+  string airline = 2;
+  CounterRange counters = 3;
+  int32 passengers_in_queue = 4;
+}
+
+// --
+
+message PassengerStatusRequest {
+  string booking = 1;
+}
+
+message PassengerStatusResponse {
+  PassengerStatus status = 1;
+
+  // Para los 3 estados
+  string flight = 2;
+  string airline = 3;
+  string sector_name = 4;
+
+  // Para waiting y not_arrived
+  CounterRange counters = 5;
+
+  // Solo para waiting
+  int32 passengers_in_queue = 6;
+
+  // Solo para checked_in
+  int32 checked_in_counter = 7;
+}

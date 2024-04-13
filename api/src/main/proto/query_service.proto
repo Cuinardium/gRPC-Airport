@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+import "common.proto";
+
+message CountersInfo {
+  string sector_name = 1;
+  CounterRange counters = 2;
+  string airline = 3;
+  repeated string flights = 4;
+  int32 passengers_in_queue = 5;
+}
+
+message CheckinInfo {
+  string sector_name = 1;
+  int32 counter = 2;
+  string airline = 3;
+  string flight = 4;
+  string booking = 5;
+}
+
+// Query (Servicio de Consulta de Mostradores)
+
+service QueryService {
+  rpc Counters(CountersRequest) returns (CountersResponse);
+  rpc Checkins(CheckinInfo) returns (CheckinsResponse);
+}
+
+// --
+
+message CountersRequest {
+  string sector_name = 1;
+}
+
+message CountersResponse {
+  repeated CountersInfo counters = 1;
+
+}
+
+// --
+
+message CheckinsRequest {
+  string sector_name = 1;
+  string airline = 2;
+}
+
+message CheckinsResponse {
+  repeated CheckinInfo checkins;
+}
