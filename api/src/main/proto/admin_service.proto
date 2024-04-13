@@ -1,5 +1,9 @@
 syntax = "proto3";
 
+
+option java_multiple_files = true;
+option java_package = "ar.edu.itba.pod.grpc.admin";
+
 import "common.proto";
 
 message Passenger {
