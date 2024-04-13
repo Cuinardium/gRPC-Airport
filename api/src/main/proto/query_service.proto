@@ -44,5 +44,5 @@ message CheckinsRequest {
 }
 
 message CheckinsResponse {
-  repeated CheckinInfo checkins;
+  repeated CheckinInfo checkins = 1;
 }
