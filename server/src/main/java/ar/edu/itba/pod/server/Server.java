@@ -25,7 +25,7 @@ public class Server {
 
         CounterRepository counterRepository = new CounterRepositoryImpl();
         PassengerRepository passengerRepository = new PassengerRepositoryImpl();
-        CheckinRepository checkinRepository = new CheckInRepositoryImpl();
+        CheckinRepository checkinRepository = new CheckinRepositoryImpl();
 
         PassengerQueue passengerQueue = new PassengerQueueImpl();
         AirlineQueue airlineQueue = new AirlineQueueImpl();
