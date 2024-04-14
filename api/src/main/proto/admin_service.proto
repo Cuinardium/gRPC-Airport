@@ -17,7 +17,7 @@ message Passenger {
 service AdminService {
   rpc AddSector(AddSectorRequest) returns (AddSectorResponse);
   rpc AddCounters(AddCountersRequest) returns (AddCountersResponse);
-  rpc AddPassenger(Passenger) returns (AddPassengerResponse);
+  rpc AddPassenger(AddPassengerRequest) returns (AddPassengerResponse);
 }
 
 // --
