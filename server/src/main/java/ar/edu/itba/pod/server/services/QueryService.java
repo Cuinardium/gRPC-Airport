@@ -24,7 +24,7 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
     }
 
     @Override
-    public void checkins(CheckinInfo request, StreamObserver<CheckinsResponse> responseObserver) {}
+    public void checkins(CheckinsRequest request, StreamObserver<CheckinsResponse> responseObserver) {}
 
     @Override
     public void counters(
