@@ -48,7 +48,7 @@ public class Server {
                         checkinRepository,
                         passengerQueue,
                         eventManager);
-        BindableService eventsService = new EventsService(eventManager);
+        BindableService eventsService = new EventsService(passengerRepository, eventManager);
         BindableService queryService =
                 new QueryService(counterRepository, checkinRepository, passengerQueue);
 
