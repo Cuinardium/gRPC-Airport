@@ -1,3 +1,10 @@
 package ar.edu.itba.pod.server.queues;
 
-public interface PassengerQueue {}
+import ar.edu.itba.pod.server.models.Range;
+
+import java.util.Map;
+
+public interface PassengerQueue {
+
+    Map<Range, Integer> getPassengersInQueuePerRange();
+}
