@@ -11,4 +11,5 @@ public interface CounterRepository {
     List<CountersRange> getCounters();
     List<CountersRange> getCounters(Predicate<CountersRange> predicate);
 
+    boolean hasCounters();
 }

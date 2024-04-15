@@ -18,4 +18,9 @@ public class CheckinRepositoryImpl implements CheckinRepository {
     public List<Checkin> getCheckins(Predicate<Checkin> predicate) {
         return List.of();
     }
+
+    @Override
+    public boolean hasCheckins() {
+        return false;
+    }
 }

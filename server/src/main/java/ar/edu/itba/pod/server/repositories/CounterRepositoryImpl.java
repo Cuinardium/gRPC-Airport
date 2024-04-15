@@ -16,4 +16,8 @@ public class CounterRepositoryImpl implements CounterRepository {
         return List.of();
     }
 
+    @Override
+    public boolean hasCounters() {
+        return false;
+    }
 }

@@ -9,6 +9,7 @@ import ar.edu.itba.pod.server.queues.PassengerQueue;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
 
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 
 import java.util.List;
@@ -34,6 +35,15 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
     @Override
     public void checkins(
             CheckinsRequest request, StreamObserver<CheckinsResponse> responseObserver) {
+
+        if (!checkinRepository.hasCheckins()) {
+            responseObserver.onError(
+                    Status.NOT_FOUND
+                            .withDescription("No checkins have been registered")
+                            .asRuntimeException());
+
+            return;
+        }
 
         String sector = request.getSectorName();
         String airline = request.getAirline();
@@ -69,8 +79,17 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
 
     @Override
     public void counters(
-            CountersRequest request, StreamObserver<CountersResponse> responseObserver) {}
             CountersRequest request, StreamObserver<CountersResponse> responseObserver) {
+
+        if (!counterRepository.hasCounters()) {
+            responseObserver.onError(
+                    Status.NOT_FOUND
+                            .withDescription("No counters have been added to this airport")
+                            .asRuntimeException());
+
+            return;
+        }
+
         String sector = request.getSectorName();
 
         Predicate<CountersRange> predicate = countersRange -> true;

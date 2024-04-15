@@ -12,4 +12,6 @@ public interface CheckinRepository {
     List<Checkin> getCheckins();
 
     List<Checkin> getCheckins(Predicate<Checkin> predicate);
+
+    boolean hasCheckins();
 }
