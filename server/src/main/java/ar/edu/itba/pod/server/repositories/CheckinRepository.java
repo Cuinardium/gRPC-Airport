@@ -14,4 +14,5 @@ public interface CheckinRepository {
     List<Checkin> getCheckins(Predicate<Checkin> predicate);
 
     boolean hasCheckins();
+    boolean hasCheckin(String booking);
 }

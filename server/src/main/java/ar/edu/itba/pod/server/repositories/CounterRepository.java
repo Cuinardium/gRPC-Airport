@@ -16,4 +16,5 @@ public interface CounterRepository {
     Optional<Range> getFlightCounters(String flight);
 
     boolean hasCounters();
+    boolean hasSector(String sector);
 }
