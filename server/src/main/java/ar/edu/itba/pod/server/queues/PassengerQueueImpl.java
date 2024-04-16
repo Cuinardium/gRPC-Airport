@@ -6,7 +6,7 @@ import java.util.Map;
 
 public class PassengerQueueImpl implements PassengerQueue {
     @Override
-    public Map<Range, Integer> getPassengersInQueuePerRange() {
+    public Map<Range, Integer> getPassengersInCounterRange() {
         return Map.of();
     }
 }

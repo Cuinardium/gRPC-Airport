@@ -6,5 +6,5 @@ import java.util.Map;
 
 public interface PassengerQueue {
 
-    Map<Range, Integer> getPassengersInQueuePerRange();
+    Map<Range, Integer> getPassengersInCounterRange();
 }

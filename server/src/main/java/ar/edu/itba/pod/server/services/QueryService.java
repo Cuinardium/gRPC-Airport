@@ -98,7 +98,7 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
             predicate = predicate.and(countersRange -> countersRange.sector().equals(sector));
         }
 
-        Map<Range, Integer> passengersInQueue = passengerQueue.getPassengersInQueuePerRange();
+        Map<Range, Integer> passengersInQueue = passengerQueue.getPassengersInCounterRange();
         List<CountersInfo> counters =
                 counterRepository.getCounters(predicate).stream()
                         .map(
