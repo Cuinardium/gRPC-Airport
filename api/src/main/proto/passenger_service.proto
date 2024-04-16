@@ -39,9 +39,9 @@ message FetchCounterResponse {
   // Para ambos estados
   string flight = 2;
   string airline = 3;
-  CounterRange counters = 4;
 
   // Solo si se asigno el vuelo a un mostrador
+  CounterRange counters = 4;
   int32 passengers_in_queue = 5;
 }
 

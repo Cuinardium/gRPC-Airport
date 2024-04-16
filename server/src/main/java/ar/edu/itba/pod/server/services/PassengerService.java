@@ -1,12 +1,19 @@
 package ar.edu.itba.pod.server.services;
 
+import ar.edu.itba.pod.grpc.common.CounterRange;
 import ar.edu.itba.pod.grpc.passenger.*;
 import ar.edu.itba.pod.server.events.EventManager;
+import ar.edu.itba.pod.server.models.Passenger;
+import ar.edu.itba.pod.server.models.Range;
 import ar.edu.itba.pod.server.queues.PassengerQueue;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
 import ar.edu.itba.pod.server.repositories.PassengerRepository;
+
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
+
+import java.util.Optional;
 
 public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplBase {
 
@@ -33,7 +40,62 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
 
     @Override
     public void fetchCounter(
-            FetchCounterRequest request, StreamObserver<FetchCounterResponse> responseObserver) {}
+            FetchCounterRequest request, StreamObserver<FetchCounterResponse> responseObserver) {
+
+        String booking = request.getBooking();
+
+        if (booking.isEmpty()) {
+            responseObserver.onError(
+                    Status.INVALID_ARGUMENT
+                            .withDescription("No booking was provided")
+                            .asRuntimeException());
+
+            return;
+        }
+
+        Optional<Passenger> possiblePassenger = passengerRepository.getPassenger(booking);
+
+        if (possiblePassenger.isEmpty()) {
+            responseObserver.onError(
+                    Status.NOT_FOUND
+                            .withDescription("No passenger expected with the given booking")
+                            .asRuntimeException());
+
+            return;
+        }
+
+        Passenger passenger = possiblePassenger.get();
+
+        FetchCounterResponse.Builder responseBuilder =
+                FetchCounterResponse.newBuilder()
+                        .setAirline(passenger.airline())
+                        .setFlight(passenger.flight());
+
+        Optional<Range> possibleCounters = counterRepository.getFlightCounters(passenger.flight());
+
+        if (possibleCounters.isPresent()) {
+            Range counters = possibleCounters.get();
+            Integer passengersInQueue =
+                    passengerQueue
+                            .getPassengersInCounter(counters)
+                            .orElseThrow(IllegalStateException::new);
+
+            responseBuilder
+                    .setStatus(FlightStatus.FLIGHT_STATUS_ASSIGNED)
+                    .setCounters(
+                            CounterRange.newBuilder()
+                                    .setFrom(counters.from())
+                                    .setTo(counters.to())
+                                    .build())
+                    .setPassengersInQueue(passengersInQueue);
+        } else {
+            responseBuilder.setStatus(FlightStatus.FLIGHT_STATUS_UNASSIGNED);
+        }
+
+        FetchCounterResponse response = responseBuilder.build();
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+    }
 
     @Override
     public void passengerCheckin(
