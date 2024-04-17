@@ -1,6 +1,7 @@
 package ar.edu.itba.pod.server.repositories;
 
 import ar.edu.itba.pod.server.models.CountersRange;
+import ar.edu.itba.pod.server.models.Range;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,4 +18,6 @@ public interface CounterRepository {
     boolean hasCounters();
     boolean hasSector(String sector);
     void addSector(String sector);
+    boolean hasPassengerInCounter(Range counterRange, String booking);
+    int addPassengerToQueue(Range counterRange, String booking);
 }

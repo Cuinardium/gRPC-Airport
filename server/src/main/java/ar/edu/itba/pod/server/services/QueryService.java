@@ -4,8 +4,6 @@ import ar.edu.itba.pod.grpc.common.CounterRange;
 import ar.edu.itba.pod.grpc.query.*;
 import ar.edu.itba.pod.server.models.Checkin;
 import ar.edu.itba.pod.server.models.CountersRange;
-import ar.edu.itba.pod.server.models.Range;
-import ar.edu.itba.pod.server.queues.PassengerQueue;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
 
@@ -13,7 +11,6 @@ import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 
 import java.util.List;
-import java.util.Map;
 import java.util.function.Predicate;
 
 public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
@@ -21,15 +18,9 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
     private final CounterRepository counterRepository;
     private final CheckinRepository checkinRepository;
 
-    private final PassengerQueue passengerQueue;
-
-    public QueryService(
-            CounterRepository counterRepository,
-            CheckinRepository checkinRepository,
-            PassengerQueue passengerQueue) {
+    public QueryService(CounterRepository counterRepository, CheckinRepository checkinRepository) {
         this.counterRepository = counterRepository;
         this.checkinRepository = checkinRepository;
-        this.passengerQueue = passengerQueue;
     }
 
     @Override
@@ -98,32 +89,36 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
             predicate = predicate.and(countersRange -> countersRange.sector().equals(sector));
         }
 
-        Map<Range, Integer> passengersInQueue = passengerQueue.getPassengersInAllCounters();
         List<CountersInfo> counters =
                 counterRepository.getCounters(predicate).stream()
-                        .map(
-                                countersRange ->
-                                        CountersInfo.newBuilder()
-                                                .setSectorName(countersRange.sector())
-                                                .setCounters(
-                                                        CounterRange.newBuilder()
-                                                                .setFrom(
-                                                                        countersRange
-                                                                                .range()
-                                                                                .from())
-                                                                .setTo(countersRange.range().to())
-                                                                .build())
-                                                .setAirline(countersRange.airline())
-                                                .addAllFlights(countersRange.flights())
-                                                .setPassengersInQueue(
-                                                        passengersInQueue.getOrDefault(
-                                                                countersRange.range(), 0))
-                                                .build())
+                        .map(this::mapCountersRangeToCountersInfo)
                         .toList();
 
         CountersResponse response = CountersResponse.newBuilder().addAllCounters(counters).build();
 
         responseObserver.onNext(response);
         responseObserver.onCompleted();
+    }
+
+    private CountersInfo mapCountersRangeToCountersInfo(CountersRange countersRange) {
+        CountersInfo.Builder countersInfoBuilder =
+                CountersInfo.newBuilder()
+                        .setSectorName(countersRange.sector())
+                        .setCounters(
+                                CounterRange.newBuilder()
+                                        .setFrom(countersRange.range().from())
+                                        .setTo(countersRange.range().to())
+                                        .build());
+
+        countersRange
+                .assignedInfo()
+                .ifPresent(
+                        assignedInfo ->
+                                countersInfoBuilder
+                                        .setAirline(assignedInfo.airline())
+                                        .addAllFlights(assignedInfo.flights())
+                                        .setPassengersInQueue(assignedInfo.passengersInQueue()));
+
+        return countersInfoBuilder.build();
     }
 }

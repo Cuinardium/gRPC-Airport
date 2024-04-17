@@ -9,7 +9,6 @@ import ar.edu.itba.pod.server.models.Checkin;
 import ar.edu.itba.pod.server.models.CountersRange;
 import ar.edu.itba.pod.server.models.Passenger;
 import ar.edu.itba.pod.server.models.Range;
-import ar.edu.itba.pod.server.queues.PassengerQueue;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
 import ar.edu.itba.pod.server.repositories.PassengerRepository;
@@ -25,20 +24,16 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
     private final PassengerRepository passengerRepository;
     private final CheckinRepository checkinRepository;
 
-    private final PassengerQueue passengerQueue;
-
     private final EventManager eventManager;
 
     public PassengerService(
             CounterRepository counterRepository,
             PassengerRepository passengerRepository,
             CheckinRepository checkinRepository,
-            PassengerQueue passengerQueue,
             EventManager eventManager) {
         this.counterRepository = counterRepository;
         this.passengerRepository = passengerRepository;
         this.checkinRepository = checkinRepository;
-        this.passengerQueue = passengerQueue;
         this.eventManager = eventManager;
     }
 
@@ -80,10 +75,12 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
 
         if (possibleCounters.isPresent()) {
             Range counters = possibleCounters.get().range();
-            Integer passengersInQueue =
-                    passengerQueue
-                            .getPassengersInCounter(counters)
-                            .orElseThrow(IllegalStateException::new);
+            int passengersInQueue =
+                    possibleCounters
+                            .get()
+                            .assignedInfo()
+                            .orElseThrow(IllegalStateException::new)
+                            .passengersInQueue();
 
             responseBuilder
                     .setStatus(FlightStatus.FLIGHT_STATUS_ASSIGNED)
@@ -157,7 +154,7 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
 
         Range assignedCounters = possibleAssignedCounters.get().range();
 
-        if (passengerQueue.hasPassengerInCounter(assignedCounters, booking)) {
+        if (counterRepository.hasPassengerInCounter(assignedCounters, booking)) {
             responseObserver.onError(
                     Status.ALREADY_EXISTS
                             .withDescription("Passenger is already waiting in counter queue")
@@ -175,11 +172,7 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
             return;
         }
 
-        passengerQueue.addPassengerToQueue(assignedCounters, booking);
-        int passengersInQueue =
-                passengerQueue
-                        .getPassengersInCounter(assignedCounters)
-                        .orElseThrow(IllegalStateException::new);
+        int passengersInQueue = counterRepository.addPassengerToQueue(assignedCounters, booking);
 
         RegisterResponse event =
                 RegisterResponse.newBuilder()
@@ -244,6 +237,7 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
 
         Optional<CountersRange> possibleAssignedCounters =
                 counterRepository.getFlightCounters(passenger.flight());
+
         if (possibleAssignedCounters.isEmpty()) {
             responseObserver.onError(
                     Status.NOT_FOUND
@@ -264,27 +258,35 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
         Optional<Checkin> possibleCheckin = checkinRepository.getCheckin(booking);
 
         if (possibleCheckin.isPresent()) {
-            responseBuilder
-                    .setStatus(PassengerStatus.PASSENGER_STATUS_CHECKED_IN)
-                    .setCheckedInCounter(possibleCheckin.get().counter());
-        } else {
-            responseBuilder.setCounters(
-                    CounterRange.newBuilder()
-                            .setFrom(assignedCounters.range().from())
-                            .setTo(assignedCounters.range().to())
-                            .build());
+            PassengerStatusResponse response =
+                    responseBuilder
+                            .setStatus(PassengerStatus.PASSENGER_STATUS_CHECKED_IN)
+                            .setCheckedInCounter(possibleCheckin.get().counter())
+                            .build();
 
-            if (passengerQueue.hasPassengerInCounter(assignedCounters.range(), booking)) {
-                int passengersInQueue =
-                        passengerQueue
-                                .getPassengersInCounter(assignedCounters.range())
-                                .orElseThrow(IllegalStateException::new);
-                responseBuilder
-                        .setStatus(PassengerStatus.PASSENGER_STATUS_WAITING)
-                        .setPassengersInQueue(passengersInQueue);
-            } else {
-                responseBuilder.setStatus(PassengerStatus.PASSENGER_STATUS_NOT_ARRIVED);
-            }
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+            return;
+        }
+
+        Range range = assignedCounters.range();
+
+        responseBuilder.setCounters(
+                CounterRange.newBuilder().setFrom(range.from()).setTo(range.to()).build());
+
+        if (counterRepository.hasPassengerInCounter(range, booking)) {
+            int passengersInQueue =
+                    assignedCounters
+                            .assignedInfo()
+                            .orElseThrow(IllegalStateException::new)
+                            .passengersInQueue();
+
+            responseBuilder
+                    .setStatus(PassengerStatus.PASSENGER_STATUS_WAITING)
+                    .setPassengersInQueue(passengersInQueue);
+        } else {
+            responseBuilder.setStatus(PassengerStatus.PASSENGER_STATUS_NOT_ARRIVED);
         }
 
         PassengerStatusResponse response = responseBuilder.build();
