@@ -3,6 +3,7 @@ package ar.edu.itba.pod.server.repositories;
 import ar.edu.itba.pod.server.models.Checkin;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 public class CheckinRepositoryImpl implements CheckinRepository {
@@ -20,7 +21,17 @@ public class CheckinRepositoryImpl implements CheckinRepository {
     }
 
     @Override
+    public Optional<Checkin> getCheckin(String booking) {
+        return Optional.empty();
+    }
+
+    @Override
     public boolean hasCheckins() {
+        return false;
+    }
+
+    @Override
+    public boolean hasCheckin(String booking) {
         return false;
     }
 }

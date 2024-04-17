@@ -1,7 +1,6 @@
 package ar.edu.itba.pod.server.repositories;
 
 import ar.edu.itba.pod.server.models.CountersRange;
-import ar.edu.itba.pod.server.models.Range;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,12 +18,17 @@ public class CounterRepositoryImpl implements CounterRepository {
     }
 
     @Override
-    public Optional<Range> getFlightCounters(String flight) {
+    public Optional<CountersRange> getFlightCounters(String flight) {
         return Optional.empty();
     }
 
     @Override
     public boolean hasCounters() {
+        return false;
+    }
+
+    @Override
+    public boolean hasSector(String sector) {
         return false;
     }
 }
