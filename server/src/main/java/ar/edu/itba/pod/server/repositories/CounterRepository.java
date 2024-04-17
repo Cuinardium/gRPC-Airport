@@ -3,6 +3,7 @@ package ar.edu.itba.pod.server.repositories;
 import ar.edu.itba.pod.server.models.CountersRange;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 public interface CounterRepository {
@@ -11,5 +12,8 @@ public interface CounterRepository {
     List<CountersRange> getCounters();
     List<CountersRange> getCounters(Predicate<CountersRange> predicate);
 
+    Optional<CountersRange> getFlightCounters(String flight);
+
     boolean hasCounters();
+    boolean hasSector(String sector);
 }
