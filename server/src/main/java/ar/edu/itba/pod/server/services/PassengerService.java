@@ -244,6 +244,7 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
 
         Optional<CountersRange> possibleAssignedCounters =
                 counterRepository.getFlightCounters(passenger.flight());
+
         if (possibleAssignedCounters.isEmpty()) {
             responseObserver.onError(
                     Status.NOT_FOUND
@@ -264,27 +265,34 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
         Optional<Checkin> possibleCheckin = checkinRepository.getCheckin(booking);
 
         if (possibleCheckin.isPresent()) {
-            responseBuilder
-                    .setStatus(PassengerStatus.PASSENGER_STATUS_CHECKED_IN)
-                    .setCheckedInCounter(possibleCheckin.get().counter());
-        } else {
-            responseBuilder.setCounters(
-                    CounterRange.newBuilder()
-                            .setFrom(assignedCounters.range().from())
-                            .setTo(assignedCounters.range().to())
-                            .build());
+            PassengerStatusResponse response =
+                    responseBuilder
+                            .setStatus(PassengerStatus.PASSENGER_STATUS_CHECKED_IN)
+                            .setCheckedInCounter(possibleCheckin.get().counter())
+                            .build();
 
-            if (passengerQueue.hasPassengerInCounter(assignedCounters.range(), booking)) {
-                int passengersInQueue =
-                        passengerQueue
-                                .getPassengersInCounter(assignedCounters.range())
-                                .orElseThrow(IllegalStateException::new);
-                responseBuilder
-                        .setStatus(PassengerStatus.PASSENGER_STATUS_WAITING)
-                        .setPassengersInQueue(passengersInQueue);
-            } else {
-                responseBuilder.setStatus(PassengerStatus.PASSENGER_STATUS_NOT_ARRIVED);
-            }
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+            return;
+        }
+
+        Range range = assignedCounters.range();
+
+        responseBuilder.setCounters(
+                CounterRange.newBuilder().setFrom(range.from()).setTo(range.to()).build());
+
+        if (passengerQueue.hasPassengerInCounter(range, booking)) {
+            int passengersInQueue =
+                    passengerQueue
+                            .getPassengersInCounter(range)
+                            .orElseThrow(IllegalStateException::new);
+
+            responseBuilder
+                    .setStatus(PassengerStatus.PASSENGER_STATUS_WAITING)
+                    .setPassengersInQueue(passengersInQueue);
+        } else {
+            responseBuilder.setStatus(PassengerStatus.PASSENGER_STATUS_NOT_ARRIVED);
         }
 
         PassengerStatusResponse response = responseBuilder.build();
