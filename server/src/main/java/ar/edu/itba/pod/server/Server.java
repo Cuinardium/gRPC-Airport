@@ -2,8 +2,6 @@ package ar.edu.itba.pod.server;
 
 import ar.edu.itba.pod.server.events.EventManager;
 import ar.edu.itba.pod.server.events.EventManagerImpl;
-import ar.edu.itba.pod.server.queues.AirlineQueue;
-import ar.edu.itba.pod.server.queues.AirlineQueueImpl;
 import ar.edu.itba.pod.server.queues.PassengerQueue;
 import ar.edu.itba.pod.server.queues.PassengerQueueImpl;
 import ar.edu.itba.pod.server.repositories.*;
@@ -28,7 +26,6 @@ public class Server {
         CheckinRepository checkinRepository = new CheckinRepositoryImpl();
 
         PassengerQueue passengerQueue = new PassengerQueueImpl();
-        AirlineQueue airlineQueue = new AirlineQueueImpl();
 
         EventManager eventManager = new EventManagerImpl();
 
@@ -39,7 +36,6 @@ public class Server {
                         passengerRepository,
                         checkinRepository,
                         passengerQueue,
-                        airlineQueue,
                         eventManager);
         BindableService passengerService =
                 new PassengerService(
