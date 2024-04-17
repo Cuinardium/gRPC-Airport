@@ -5,6 +5,8 @@ import ar.edu.itba.pod.grpc.events.PassengerArrivedInfo;
 import ar.edu.itba.pod.grpc.events.RegisterResponse;
 import ar.edu.itba.pod.grpc.passenger.*;
 import ar.edu.itba.pod.server.events.EventManager;
+import ar.edu.itba.pod.server.models.Checkin;
+import ar.edu.itba.pod.server.models.CountersRange;
 import ar.edu.itba.pod.server.models.Passenger;
 import ar.edu.itba.pod.server.models.Range;
 import ar.edu.itba.pod.server.queues.PassengerQueue;
@@ -73,10 +75,11 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
                         .setAirline(passenger.airline())
                         .setFlight(passenger.flight());
 
-        Optional<Range> possibleCounters = counterRepository.getFlightCounters(passenger.flight());
+        Optional<CountersRange> possibleCounters =
+                counterRepository.getFlightCounters(passenger.flight());
 
         if (possibleCounters.isPresent()) {
-            Range counters = possibleCounters.get();
+            Range counters = possibleCounters.get().range();
             Integer passengersInQueue =
                     passengerQueue
                             .getPassengersInCounter(counters)
@@ -139,11 +142,11 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
             return;
         }
 
-        Optional<Range> possibleAssignedCounters =
+        Optional<CountersRange> possibleAssignedCounters =
                 counterRepository.getFlightCounters(passenger.flight());
 
         if (possibleAssignedCounters.isEmpty()
-                || possibleAssignedCounters.get().from() != firstCounter) {
+                || possibleAssignedCounters.get().range().from() != firstCounter) {
             responseObserver.onError(
                     Status.NOT_FOUND
                             .withDescription(
@@ -152,7 +155,7 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
             return;
         }
 
-        Range assignedCounters = possibleAssignedCounters.get();
+        Range assignedCounters = possibleAssignedCounters.get().range();
 
         if (passengerQueue.hasPassengerInCounter(assignedCounters, booking)) {
             responseObserver.onError(
@@ -213,5 +216,80 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
     @Override
     public void passengerStatus(
             PassengerStatusRequest request,
-            StreamObserver<PassengerStatusResponse> responseObserver) {}
+            StreamObserver<PassengerStatusResponse> responseObserver) {
+
+        String booking = request.getBooking();
+
+        if (booking.isEmpty()) {
+            responseObserver.onError(
+                    Status.INVALID_ARGUMENT
+                            .withDescription("No booking was provided")
+                            .asRuntimeException());
+
+            return;
+        }
+
+        Optional<Passenger> possiblePassenger = passengerRepository.getPassenger(booking);
+
+        if (possiblePassenger.isEmpty()) {
+            responseObserver.onError(
+                    Status.NOT_FOUND
+                            .withDescription("No passenger expected with the given booking")
+                            .asRuntimeException());
+
+            return;
+        }
+
+        Passenger passenger = possiblePassenger.get();
+
+        Optional<CountersRange> possibleAssignedCounters =
+                counterRepository.getFlightCounters(passenger.flight());
+        if (possibleAssignedCounters.isEmpty()) {
+            responseObserver.onError(
+                    Status.NOT_FOUND
+                            .withDescription("No counters were assigned to the bookings flight")
+                            .asRuntimeException());
+
+            return;
+        }
+
+        CountersRange assignedCounters = possibleAssignedCounters.get();
+
+        PassengerStatusResponse.Builder responseBuilder =
+                PassengerStatusResponse.newBuilder()
+                        .setAirline(passenger.airline())
+                        .setFlight(passenger.flight())
+                        .setSectorName(assignedCounters.sector());
+
+        Optional<Checkin> possibleCheckin = checkinRepository.getCheckin(booking);
+
+        if (possibleCheckin.isPresent()) {
+            responseBuilder
+                    .setStatus(PassengerStatus.PASSENGER_STATUS_CHECKED_IN)
+                    .setCheckedInCounter(possibleCheckin.get().counter());
+        } else {
+            responseBuilder.setCounters(
+                    CounterRange.newBuilder()
+                            .setFrom(assignedCounters.range().from())
+                            .setTo(assignedCounters.range().to())
+                            .build());
+
+            if (passengerQueue.hasPassengerInCounter(assignedCounters.range(), booking)) {
+                int passengersInQueue =
+                        passengerQueue
+                                .getPassengersInCounter(assignedCounters.range())
+                                .orElseThrow(IllegalStateException::new);
+                responseBuilder
+                        .setStatus(PassengerStatus.PASSENGER_STATUS_WAITING)
+                        .setPassengersInQueue(passengersInQueue);
+            } else {
+                responseBuilder.setStatus(PassengerStatus.PASSENGER_STATUS_NOT_ARRIVED);
+            }
+        }
+
+        PassengerStatusResponse response = responseBuilder.build();
+
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+    }
 }
