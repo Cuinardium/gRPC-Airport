@@ -4,6 +4,7 @@ import ar.edu.itba.pod.grpc.admin.*;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
 import ar.edu.itba.pod.server.repositories.PassengerRepository;
 
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 
 public class AdminService extends AdminServiceGrpc.AdminServiceImplBase {
@@ -18,12 +19,35 @@ public class AdminService extends AdminServiceGrpc.AdminServiceImplBase {
     }
 
     @Override
-    public void addSector(
-            AddSectorRequest request, StreamObserver<AddSectorResponse> responseObserver) {}
+    public void addSector(AddSectorRequest request, StreamObserver<AddSectorResponse> responseObserver) {
+        String sector = request.getSectorName();
+
+        if(sector.isEmpty()){
+            responseObserver.onError(
+                    Status.INVALID_ARGUMENT
+                            .withDescription("No sector was specified")
+                            .asRuntimeException()
+            );
+            return;
+        }
+
+        if (counterRepository.hasSector(sector)) {
+            responseObserver.onError(
+                    Status.ALREADY_EXISTS
+                            .withDescription("This sector was already added")
+                            .asRuntimeException()
+            );
+            return;
+        }
+
+        counterRepository.addSector(sector);
+        responseObserver.onCompleted();
+    }
 
     @Override
-    public void addCounters(
-            AddCountersRequest request, StreamObserver<AddCountersResponse> responseObserver) {}
+    public void addCounters(AddCountersRequest request, StreamObserver<AddCountersResponse> responseObserver) {
+
+    }
 
     @Override
     public void addPassenger(

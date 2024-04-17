@@ -16,4 +16,5 @@ public interface CounterRepository {
 
     boolean hasCounters();
     boolean hasSector(String sector);
+    void addSector(String sector);
 }
