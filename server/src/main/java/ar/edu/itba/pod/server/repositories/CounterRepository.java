@@ -12,12 +12,13 @@ public interface CounterRepository {
     // Lists sorted by range
     List<CountersRange> getCounters();
     List<CountersRange> getCounters(Predicate<CountersRange> predicate);
-
     Optional<CountersRange> getFlightCounters(String flight);
 
     boolean hasCounters();
     boolean hasSector(String sector);
-    void addSector(String sector);
     boolean hasPassengerInCounter(Range counterRange, String booking);
+
+    void addSector(String sector);
+    void addCounters(String sector, int counterCount);
     int addPassengerToQueue(Range counterRange, String booking);
 }
