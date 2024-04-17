@@ -2,8 +2,6 @@ package ar.edu.itba.pod.server;
 
 import ar.edu.itba.pod.server.events.EventManager;
 import ar.edu.itba.pod.server.events.EventManagerImpl;
-import ar.edu.itba.pod.server.queues.PassengerQueue;
-import ar.edu.itba.pod.server.queues.PassengerQueueImpl;
 import ar.edu.itba.pod.server.repositories.*;
 import ar.edu.itba.pod.server.services.*;
 
@@ -25,8 +23,6 @@ public class Server {
         PassengerRepository passengerRepository = new PassengerRepositoryImpl();
         CheckinRepository checkinRepository = new CheckinRepositoryImpl();
 
-        PassengerQueue passengerQueue = new PassengerQueueImpl();
-
         EventManager eventManager = new EventManagerImpl();
 
         BindableService adminService = new AdminService(counterRepository, passengerRepository);
@@ -35,18 +31,16 @@ public class Server {
                         counterRepository,
                         passengerRepository,
                         checkinRepository,
-                        passengerQueue,
                         eventManager);
         BindableService passengerService =
                 new PassengerService(
                         counterRepository,
                         passengerRepository,
                         checkinRepository,
-                        passengerQueue,
                         eventManager);
         BindableService eventsService = new EventsService(passengerRepository, eventManager);
         BindableService queryService =
-                new QueryService(counterRepository, checkinRepository, passengerQueue);
+                new QueryService(counterRepository, checkinRepository);
 
         int port = 50051;
         io.grpc.Server server =
