@@ -1,5 +1,7 @@
 package ar.edu.itba.pod.client;
 
+import ar.edu.itba.pod.grpc.admin.AddCountersRequest;
+import ar.edu.itba.pod.grpc.admin.AddSectorRequest;
 import ar.edu.itba.pod.grpc.admin.AdminServiceGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -56,11 +58,23 @@ public class AdminClient {
         if (action.equals("addSector") || action.equals("addCounters") || action.equals("manifest")) {
             switch (action) {
                 case "addSector":
-
+                    String sectorName = Optional.ofNullable(System.getProperty("sector")).orElseThrow(IllegalArgumentException::new);
+                    AddSectorRequest addSectorRequest = AddSectorRequest
+                            .newBuilder()
+                            .setSectorName(sectorName)
+                            .build();
+                    stub.addSector(addSectorRequest);
                     break;
 
                 case "addCounters":
-
+                    String sector = Optional.ofNullable(System.getProperty("sector")).orElseThrow(IllegalArgumentException::new);
+                    int counters = Integer.parseInt(Optional.ofNullable(System.getProperty("counters")).orElseThrow(IllegalArgumentException::new));
+                    AddCountersRequest addCountersRequest = AddCountersRequest
+                            .newBuilder()
+                            .setSectorName(sector)
+                            .setCounterCount(counters)
+                            .build();
+                    stub.addCounters(addCountersRequest);
                     break;
 
                 case "manifest":
