@@ -89,7 +89,34 @@ public class AdminService extends AdminServiceGrpc.AdminServiceImplBase {
     @Override
     public void addPassenger(
             AddPassengerRequest request, StreamObserver<AddPassengerResponse> responseObserver) {
+        Passenger passenger = request.getPassenger();
 
+        if(passenger.getBooking().isEmpty() ||
+                passenger.getAirline().isEmpty() ||
+                passenger.getFlight().isEmpty()){
+
+            responseObserver.onError(
+                    Status.INVALID_ARGUMENT
+                            .withDescription("Booking, airline and flight must be provided.")
+                            .asRuntimeException()
+            );
+            return;
+        }
+
+        if(passengerRepository.hasPassenger(passenger)){
+            responseObserver.onError(
+                    Status.ALREADY_EXISTS
+                            .withDescription("This passenger was already added")
+                            .asRuntimeException()
+            );
+            return;
+        }
+
+        passengerRepository.addPassenger(passenger);
+
+        //TODO: See response for onNext
+//        responseObserver.onNext();
+        responseObserver.onCompleted();
     }
 
 
