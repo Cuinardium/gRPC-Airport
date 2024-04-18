@@ -1,6 +1,6 @@
 package ar.edu.itba.pod.client;
 
-import ar.edu.itba.pod.grpc.admin.AdminServiceGrpc;
+import ar.edu.itba.pod.grpc.events.EventsServiceGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.slf4j.Logger;
@@ -36,7 +36,7 @@ public class EventsClient {
                 .usePlaintext()
                 .build();
 
-        AdminServiceGrpc.AdminServiceBlockingStub stub = AdminServiceGrpc.newBlockingStub(channel);
+        EventsServiceGrpc.EventsServiceFutureStub stub = EventsServiceGrpc.newFutureStub(channel);
 
         try {
             action = Optional.ofNullable(System.getProperty("action")).orElseThrow(IllegalArgumentException::new);
@@ -51,7 +51,7 @@ public class EventsClient {
         }
     }
 
-    private static void executeAction(String action, AdminServiceGrpc.AdminServiceBlockingStub stub) {
+    private static void executeAction(String action, EventsServiceGrpc.EventsServiceFutureStub stub) {
         if (action.equals("fetchCounter") || action.equals("passengerCheckin") || action.equals("passengerStatus"))
             switch (action) {
                 case "fetchCounter":
@@ -70,4 +70,4 @@ public class EventsClient {
 
         }
     }
-}
+

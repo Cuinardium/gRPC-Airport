@@ -1,6 +1,6 @@
 package ar.edu.itba.pod.client;
 
-import ar.edu.itba.pod.grpc.admin.AdminServiceGrpc;
+import ar.edu.itba.pod.grpc.passenger.PassengerServiceGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.slf4j.Logger;
@@ -36,7 +36,7 @@ public class PassengerClient {
                 .usePlaintext()
                 .build();
 
-        AdminServiceGrpc.AdminServiceBlockingStub stub = AdminServiceGrpc.newBlockingStub(channel);
+        PassengerServiceGrpc.PassengerServiceBlockingStub stub = PassengerServiceGrpc.newBlockingStub(channel);
 
         try {
             action = Optional.ofNullable(System.getProperty("action")).orElseThrow(IllegalArgumentException::new);
@@ -51,7 +51,7 @@ public class PassengerClient {
         }
     }
 
-    private static void executeAction(String action, AdminServiceGrpc.AdminServiceBlockingStub stub) {
+    private static void executeAction(String action, PassengerServiceGrpc.PassengerServiceBlockingStub stub) {
         if (action.equals("register") || action.equals("unregister") || action.equals("history"))
             switch (action) {
                 case "register":

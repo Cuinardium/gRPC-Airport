@@ -1,6 +1,6 @@
 package ar.edu.itba.pod.client;
 
-import ar.edu.itba.pod.grpc.admin.AdminServiceGrpc;
+import ar.edu.itba.pod.grpc.query.QueryServiceGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.slf4j.Logger;
@@ -36,7 +36,7 @@ public class QueryClient {
                 .usePlaintext()
                 .build();
 
-        AdminServiceGrpc.AdminServiceBlockingStub stub = AdminServiceGrpc.newBlockingStub(channel);
+        QueryServiceGrpc.QueryServiceBlockingStub stub = QueryServiceGrpc.newBlockingStub(channel);
 
         try {
             action = Optional.ofNullable(System.getProperty("action")).orElseThrow(IllegalArgumentException::new);
@@ -51,7 +51,7 @@ public class QueryClient {
         }
     }
 
-    private static void executeAction(String action, AdminServiceGrpc.AdminServiceBlockingStub stub) {
+    private static void executeAction(String action, QueryServiceGrpc.QueryServiceBlockingStub stub) {
         if (action.equals("counters") || action.equals("queryCounters") || action.equals("checkins") || action.equals("history"))
             switch (action) {
                 case "counters":

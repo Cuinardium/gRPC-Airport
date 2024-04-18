@@ -1,6 +1,6 @@
 package ar.edu.itba.pod.client;
 
-import ar.edu.itba.pod.grpc.admin.AdminServiceGrpc;
+import ar.edu.itba.pod.grpc.counter.CounterServiceGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.slf4j.Logger;
@@ -38,7 +38,7 @@ public class CounterClient {
                 .usePlaintext()
                 .build();
 
-        AdminServiceGrpc.AdminServiceBlockingStub stub = AdminServiceGrpc.newBlockingStub(channel);
+        CounterServiceGrpc.CounterServiceBlockingStub stub = CounterServiceGrpc.newBlockingStub(channel);
 
         try {
             action = Optional.ofNullable(System.getProperty("action")).orElseThrow(IllegalArgumentException::new);
@@ -53,7 +53,7 @@ public class CounterClient {
         }
     }
 
-    private static void executeAction(String action, AdminServiceGrpc.AdminServiceBlockingStub stub) {
+    private static void executeAction(String action, CounterServiceGrpc.CounterServiceBlockingStub stub) {
         if (action.equals("listSectors") || action.equals("listCounters") || action.equals("assignCounters")
                 || action.equals("freeCounters") || action.equals("checkinCounters") || action.equals("listPendingAssignments"))
         {
