@@ -36,7 +36,7 @@ public class EventsClient {
                 .usePlaintext()
                 .build();
 
-        EventsServiceGrpc.EventsServiceFutureStub stub = EventsServiceGrpc.newFutureStub(channel);
+        EventsServiceGrpc.EventsServiceStub stub = EventsServiceGrpc.newStub(channel);
 
         try {
             action = Optional.ofNullable(System.getProperty("action")).orElseThrow(IllegalArgumentException::new);
@@ -51,7 +51,7 @@ public class EventsClient {
         }
     }
 
-    private static void executeAction(String action, EventsServiceGrpc.EventsServiceFutureStub stub) {
+    private static void executeAction(String action, EventsServiceGrpc.EventsServiceStub stub) {
         if (action.equals("fetchCounter") || action.equals("passengerCheckin") || action.equals("passengerStatus"))
             switch (action) {
                 case "fetchCounter":
