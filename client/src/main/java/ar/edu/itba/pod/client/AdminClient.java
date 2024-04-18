@@ -1,13 +1,20 @@
 package ar.edu.itba.pod.client;
 
-import ar.edu.itba.pod.grpc.admin.AddCountersRequest;
-import ar.edu.itba.pod.grpc.admin.AddSectorRequest;
-import ar.edu.itba.pod.grpc.admin.AdminServiceGrpc;
+import ar.edu.itba.pod.client.models.Passenger;
+import ar.edu.itba.pod.grpc.admin.*;
+import ar.edu.itba.pod.grpc.common.CounterRange;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -64,6 +71,7 @@ public class AdminClient {
                             .setSectorName(sectorName)
                             .build();
                     stub.addSector(addSectorRequest);
+                    logger.info("Sector " + sectorName + " added successfully");
                     break;
 
                 case "addCounters":
@@ -74,14 +82,42 @@ public class AdminClient {
                             .setSectorName(sector)
                             .setCounterCount(counters)
                             .build();
-                    stub.addCounters(addCountersRequest);
+                    CounterRange counterRange= stub.addCounters(addCountersRequest);
+                    int range= counterRange.getTo()-counterRange.getFrom();
+                    logger.info(range + " new counters (" + counterRange.getFrom() + "-" + counterRange.getTo() + ") in Sector " + sector + " added successfully");
                     break;
 
                 case "manifest":
-
+                    String path = Optional.ofNullable(System.getProperty("inPath")).orElseThrow(IllegalArgumentException::new);
+                    for (Passenger passenger : parsePassengers(path)) {
+                        AddPassengerRequest addPassengerRequest = AddPassengerRequest
+                                .newBuilder()
+                                .setBooking(passenger.booking())
+                                .setFlight(passenger.flight())
+                                .setAirline(passenger.airline())
+                                .build();
+                        stub.addPassenger(addPassengerRequest);
+                        logger.info("Booking " + passenger.booking() + " for " + passenger.airline() + " " + passenger.flight() + " added successfully");
+                    }
                     break;
             }
 
         }
+    }
+
+    private static List<Passenger> parsePassengers(String path) {
+        List<Passenger> passengers = new ArrayList<>();
+        Path file = Paths.get(path);
+        try (BufferedReader br = new BufferedReader(new FileReader(file.toFile()))) {
+            String line;
+            br.readLine();
+            while ((line = br.readLine()) != null) {
+                String[] passengerData = line.split(";");
+                passengers.add(new Passenger(passengerData[0], passengerData[1], passengerData[2]));
+            }
+        }catch (IOException e) {
+            logger.error(e.getMessage());
+        }
+        return passengers;
     }
 }
