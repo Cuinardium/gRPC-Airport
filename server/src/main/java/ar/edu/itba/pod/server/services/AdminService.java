@@ -1,9 +1,13 @@
 package ar.edu.itba.pod.server.services;
 
 import ar.edu.itba.pod.grpc.admin.*;
+import ar.edu.itba.pod.grpc.common.CounterRange;
+import ar.edu.itba.pod.server.models.Passenger;
+import ar.edu.itba.pod.server.models.Range;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
 import ar.edu.itba.pod.server.repositories.PassengerRepository;
 
+import com.google.protobuf.Empty;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 
@@ -19,7 +23,7 @@ public class AdminService extends AdminServiceGrpc.AdminServiceImplBase {
     }
 
     @Override
-    public void addSector(AddSectorRequest request, StreamObserver<AddSectorResponse> responseObserver) {
+    public void addSector(AddSectorRequest request, StreamObserver<com.google.protobuf.Empty> responseObserver) {
         String sector = request.getSectorName();
 
         if(sector.isEmpty()){
@@ -41,13 +45,13 @@ public class AdminService extends AdminServiceGrpc.AdminServiceImplBase {
         }
 
         counterRepository.addSector(sector);
-        //TODO: See response for onNext
-//        responseObserver.onNext();
+
+        responseObserver.onNext(Empty.getDefaultInstance());
         responseObserver.onCompleted();
     }
 
     @Override
-    public void addCounters(AddCountersRequest request, StreamObserver<AddCountersResponse> responseObserver) {
+    public void addCounters(AddCountersRequest request, StreamObserver<CounterRange> responseObserver) {
         String sector = request.getSectorName();
 
         if(sector.isEmpty()){
@@ -79,21 +83,27 @@ public class AdminService extends AdminServiceGrpc.AdminServiceImplBase {
             return;
         }
 
-        counterRepository.addCounters(sector, counterCount);
+        Range range = counterRepository.addCounters(sector, counterCount);
 
-        //TODO: See response for onNext
-//        responseObserver.onNext();
+        responseObserver.onNext(
+                CounterRange
+                .newBuilder()
+                .setFrom(range.from())
+                .setTo(range.to())
+                .build()
+        );
+
         responseObserver.onCompleted();
     }
 
     @Override
     public void addPassenger(
-            AddPassengerRequest request, StreamObserver<AddPassengerResponse> responseObserver) {
-        Passenger passenger = request.getPassenger();
+            AddPassengerRequest request, StreamObserver<com.google.protobuf.Empty> responseObserver) {
+        Passenger passenger = new Passenger(request.getBooking(), request.getFlight(), request.getAirline());
 
-        if(passenger.getBooking().isEmpty() ||
-                passenger.getAirline().isEmpty() ||
-                passenger.getFlight().isEmpty()){
+        if(passenger.booking().isEmpty() ||
+                passenger.airline().isEmpty() ||
+                passenger.flight().isEmpty()){
 
             responseObserver.onError(
                     Status.INVALID_ARGUMENT
@@ -114,8 +124,7 @@ public class AdminService extends AdminServiceGrpc.AdminServiceImplBase {
 
         passengerRepository.addPassenger(passenger);
 
-        //TODO: See response for onNext
-//        responseObserver.onNext();
+        responseObserver.onNext(Empty.getDefaultInstance());
         responseObserver.onCompleted();
     }
 

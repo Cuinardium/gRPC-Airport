@@ -19,6 +19,6 @@ public interface CounterRepository {
     boolean hasPassengerInCounter(Range counterRange, String booking);
 
     void addSector(String sector);
-    void addCounters(String sector, int counterCount);
+    Range addCounters(String sector, int counterCount);
     int addPassengerToQueue(Range counterRange, String booking);
 }
