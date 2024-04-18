@@ -39,6 +39,16 @@ public class CounterRepositoryImpl implements CounterRepository {
     }
 
     @Override
+    public void addSector(String sector) {
+        
+    }
+
+    @Override
+    public Range addCounters(String sector, int counterCount) {
+        return null;
+    }
+
+    @Override
     public int addPassengerToQueue(Range counterRange, String booking) {
         return 0;
     }

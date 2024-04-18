@@ -11,7 +11,17 @@ public class PassengerRepositoryImpl implements PassengerRepository {
     }
 
     @Override
+    public boolean hasPassenger(Passenger passenger) {
+        return false;
+    }
+
+    @Override
     public Optional<Passenger> getPassenger(String booking) {
         return Optional.empty();
+    }
+
+    @Override
+    public void addPassenger(Passenger passenger) {
+
     }
 }

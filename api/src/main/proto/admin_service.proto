@@ -1,23 +1,19 @@
 syntax = "proto3";
 
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
 
 option java_multiple_files = true;
 option java_package = "ar.edu.itba.pod.grpc.admin";
 
 import "common.proto";
 
-message Passenger {
-  string booking = 1;
-  string flight = 2;
-  string airline = 3;
-}
-
 // Admin (Servicio de Administración del Aeropuerto)
 
 service AdminService {
-  rpc AddSector(AddSectorRequest) returns (AddSectorResponse);
-  rpc AddCounters(AddCountersRequest) returns (AddCountersResponse);
-  rpc AddPassenger(AddPassengerRequest) returns (AddPassengerResponse);
+  rpc AddSector(AddSectorRequest) returns (google.protobuf.Empty);
+  rpc AddCounters(AddCountersRequest) returns (CounterRange);
+  rpc AddPassenger(AddPassengerRequest) returns (google.protobuf.Empty);
 }
 
 // --
@@ -26,8 +22,6 @@ message AddSectorRequest {
   string sector_name = 1;
 }
 
-message AddSectorResponse {}
-
 // --
 
 message AddCountersRequest {
@@ -35,14 +29,10 @@ message AddCountersRequest {
   int32 counter_count = 2;
 }
 
-message AddCountersResponse {
-  CounterRange counter_range = 1;
-}
-
 // --
 
 message AddPassengerRequest {
-  Passenger passenger = 1;
+  string booking = 1;
+  string flight = 2;
+  string airline = 3;
 }
-
-message AddPassengerResponse {}

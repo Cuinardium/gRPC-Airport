@@ -7,6 +7,9 @@ import java.util.Optional;
 public interface PassengerRepository {
 
     boolean hasAirline(String airline);
+    boolean hasPassenger(Passenger passenger);
 
     Optional<Passenger> getPassenger(String booking);
+
+    void addPassenger(Passenger passenger);
 }
