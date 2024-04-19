@@ -70,7 +70,7 @@ public class AdminClient {
                         .setSectorName(sectorName)
                         .build();
                 stub.addSector(addSectorRequest);
-                logger.info("Sector {} added successfully", sectorName);
+                System.out.println("Sector " + sectorName + " added successfully");
                 break;
 
             case "addCounters":
@@ -83,7 +83,7 @@ public class AdminClient {
                         .build();
                 CounterRange counterRange = stub.addCounters(addCountersRequest);
                 int range = counterRange.getTo() - counterRange.getFrom();
-                logger.info("{} new counters ({}-{}) in Sector {} added successfully", range, counterRange.getFrom(), counterRange.getTo(), sector);
+                System.out.println(range + " new counters ("+counterRange.getFrom()+"-"+counterRange.getTo()+") in Sector "+sector+" added successfully");
                 break;
 
             case "manifest":
@@ -96,7 +96,7 @@ public class AdminClient {
                             .setAirline(passenger.airline())
                             .build();
                     stub.addPassenger(addPassengerRequest);
-                    logger.info("Booking {} for {} {} added successfully", passenger.booking(), passenger.airline(), passenger.flight());
+                    System.out.println("Booking "+passenger.booking()+" for "+passenger.airline()+" "+passenger.flight()+" added successfully");
                 }
                 break;
             default:
