@@ -52,22 +52,22 @@ public class EventsClient {
     }
 
     private static void executeAction(String action, EventsServiceGrpc.EventsServiceStub stub) {
-        if (action.equals("fetchCounter") || action.equals("passengerCheckin") || action.equals("passengerStatus"))
-            switch (action) {
-                case "fetchCounter":
+        switch (action) {
+            case "fetchCounter":
 
-                    break;
+                break;
 
-                case "passengerCheckin":
+            case "passengerCheckin":
 
-                    break;
+                break;
 
-                case "passengerStatus":
+            case "passengerStatus":
 
-                    break;
-
-            }
-
+                break;
+            default:
+                // TODO: Exception?
+                logger.error("Unknown action: {}", action);
+                break;
         }
     }
-
+}

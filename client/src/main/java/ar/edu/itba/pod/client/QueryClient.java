@@ -52,25 +52,27 @@ public class QueryClient {
     }
 
     private static void executeAction(String action, QueryServiceGrpc.QueryServiceBlockingStub stub) {
-        if (action.equals("counters") || action.equals("queryCounters") || action.equals("checkins") || action.equals("history"))
-            switch (action) {
-                case "counters":
+        switch (action) {
+            case "counters":
 
-                    break;
+                break;
 
-                case "queryCounters":
+            case "queryCounters":
 
-                    break;
+                break;
 
-                case "checkins":
+            case "checkins":
 
-                    break;
-                    
-                case "history":
+                break;
 
-                    break;
+            case "history":
 
-            }
+                break;
+            default:
+                // TODO: Exception?
+                logger.error("Unknown action: {}", action);
+                break;
+        }
 
     }
 }

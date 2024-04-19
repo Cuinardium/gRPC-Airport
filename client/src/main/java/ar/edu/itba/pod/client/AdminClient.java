@@ -62,46 +62,47 @@ public class AdminClient {
     }
 
     private static void executeAction(String action, AdminServiceGrpc.AdminServiceBlockingStub stub) {
-        if (action.equals("addSector") || action.equals("addCounters") || action.equals("manifest")) {
-            switch (action) {
-                case "addSector":
-                    String sectorName = Optional.ofNullable(System.getProperty("sector")).orElseThrow(IllegalArgumentException::new);
-                    AddSectorRequest addSectorRequest = AddSectorRequest
+        switch (action) {
+            case "addSector":
+                String sectorName = Optional.ofNullable(System.getProperty("sector")).orElseThrow(IllegalArgumentException::new);
+                AddSectorRequest addSectorRequest = AddSectorRequest
+                        .newBuilder()
+                        .setSectorName(sectorName)
+                        .build();
+                stub.addSector(addSectorRequest);
+                logger.info("Sector {} added successfully", sectorName);
+                break;
+
+            case "addCounters":
+                String sector = Optional.ofNullable(System.getProperty("sector")).orElseThrow(IllegalArgumentException::new);
+                int counters = Integer.parseInt(Optional.ofNullable(System.getProperty("counters")).orElseThrow(IllegalArgumentException::new));
+                AddCountersRequest addCountersRequest = AddCountersRequest
+                        .newBuilder()
+                        .setSectorName(sector)
+                        .setCounterCount(counters)
+                        .build();
+                CounterRange counterRange = stub.addCounters(addCountersRequest);
+                int range = counterRange.getTo() - counterRange.getFrom();
+                logger.info("{} new counters ({}-{}) in Sector {} added successfully", range, counterRange.getFrom(), counterRange.getTo(), sector);
+                break;
+
+            case "manifest":
+                String path = Optional.ofNullable(System.getProperty("inPath")).orElseThrow(IllegalArgumentException::new);
+                for (Passenger passenger : parsePassengers(path)) {
+                    AddPassengerRequest addPassengerRequest = AddPassengerRequest
                             .newBuilder()
-                            .setSectorName(sectorName)
+                            .setBooking(passenger.booking())
+                            .setFlight(passenger.flight())
+                            .setAirline(passenger.airline())
                             .build();
-                    stub.addSector(addSectorRequest);
-                    logger.info("Sector {} added successfully", sectorName);
-                    break;
-
-                case "addCounters":
-                    String sector = Optional.ofNullable(System.getProperty("sector")).orElseThrow(IllegalArgumentException::new);
-                    int counters = Integer.parseInt(Optional.ofNullable(System.getProperty("counters")).orElseThrow(IllegalArgumentException::new));
-                    AddCountersRequest addCountersRequest = AddCountersRequest
-                            .newBuilder()
-                            .setSectorName(sector)
-                            .setCounterCount(counters)
-                            .build();
-                    CounterRange counterRange= stub.addCounters(addCountersRequest);
-                    int range= counterRange.getTo()-counterRange.getFrom();
-                    logger.info("{} new counters ({}-{}) in Sector {} added successfully", range, counterRange.getFrom(), counterRange.getTo(), sector);
-                    break;
-
-                case "manifest":
-                    String path = Optional.ofNullable(System.getProperty("inPath")).orElseThrow(IllegalArgumentException::new);
-                    for (Passenger passenger : parsePassengers(path)) {
-                        AddPassengerRequest addPassengerRequest = AddPassengerRequest
-                                .newBuilder()
-                                .setBooking(passenger.booking())
-                                .setFlight(passenger.flight())
-                                .setAirline(passenger.airline())
-                                .build();
-                        stub.addPassenger(addPassengerRequest);
-                        logger.info("Booking {} for {} {} added successfully", passenger.booking(), passenger.airline(), passenger.flight());
-                    }
-                    break;
-            }
-
+                    stub.addPassenger(addPassengerRequest);
+                    logger.info("Booking {} for {} {} added successfully", passenger.booking(), passenger.airline(), passenger.flight());
+                }
+                break;
+            default:
+                // TODO: Exception?
+                logger.error("Unknown action {}", action);
+                break;
         }
     }
 

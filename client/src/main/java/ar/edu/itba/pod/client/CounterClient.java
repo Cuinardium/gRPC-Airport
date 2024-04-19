@@ -54,35 +54,34 @@ public class CounterClient {
     }
 
     private static void executeAction(String action, CounterServiceGrpc.CounterServiceBlockingStub stub) {
-        if (action.equals("listSectors") || action.equals("listCounters") || action.equals("assignCounters")
-                || action.equals("freeCounters") || action.equals("checkinCounters") || action.equals("listPendingAssignments"))
-        {
-            switch (action) {
-                case "listSectors":
+        switch (action) {
+            case "listSectors":
 
-                    break;
+                break;
 
-                case "listCounters":
+            case "listCounters":
 
-                    break;
+                break;
 
-                case "assignCounters":
+            case "assignCounters":
 
-                    break;
+                break;
 
-                case "freeCounters":
+            case "freeCounters":
 
-                    break;
+                break;
 
-                case "checkinCounters":
+            case "checkinCounters":
 
-                    break;
+                break;
 
-                case "listPendingAssignments":
+            case "listPendingAssignments":
 
-                    break;
-            }
-
+                break;
+            default:
+                // TODO: Exception?
+                logger.error("Unknown action: {}", action);
+                break;
         }
     }
 }

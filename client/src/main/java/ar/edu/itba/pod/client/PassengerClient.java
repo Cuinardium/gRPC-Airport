@@ -52,21 +52,22 @@ public class PassengerClient {
     }
 
     private static void executeAction(String action, PassengerServiceGrpc.PassengerServiceBlockingStub stub) {
-        if (action.equals("register") || action.equals("unregister") || action.equals("history"))
-            switch (action) {
-                case "register":
+        switch (action) {
+            case "register":
 
-                    break;
+                break;
 
-                case "unregister":
+            case "unregister":
 
-                    break;
+                break;
 
-                case "history":
+            case "history":
 
-                    break;
-
-            }
-
+                break;
+            default:
+                // TODO: Exception?
+                logger.error("Unknown action: {}", action);
+                break;
+        }
     }
 }
