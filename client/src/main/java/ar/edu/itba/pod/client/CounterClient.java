@@ -62,7 +62,7 @@ public class CounterClient {
         CounterRange counterRange;
         String airline;
         List<String> flights;
-        StringBuilder flightsBuilder;
+        StringBuilder flightStringBuilder;
         switch (action) {
             case "listSectors":
                 ListSectorsResponse listSectorsResponse = stub.listSectors(Empty.getDefaultInstance());
@@ -95,7 +95,6 @@ public class CounterClient {
                 List<CounterInfo> counterInfoList = listCountersResponse.getCountersList();
                 System.out.println("Counters  Airline          Flights             People");
                 System.out.println("##########################################################");
-                StringBuilder flightStringBuilder;
                 for (CounterInfo counterInfo : counterInfoList) {
                     counterRange = counterInfo.getCounterRange();
                     String rangeString = "(" + counterRange.getFrom() + "-" + counterRange.getTo() + ")";
