@@ -1,9 +1,7 @@
 package ar.edu.itba.pod.client;
 
 import ar.edu.itba.pod.grpc.common.CounterRange;
-import ar.edu.itba.pod.grpc.counter.CounterServiceGrpc;
-import ar.edu.itba.pod.grpc.counter.ListSectorsResponse;
-import ar.edu.itba.pod.grpc.counter.SectorInfo;
+import ar.edu.itba.pod.grpc.counter.*;
 import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -91,6 +89,27 @@ public class CounterClient {
                 break;
 
             case "listPendingAssignments":
+                String sectorName = Optional.ofNullable(System.getProperty("sector")).orElseThrow(IllegalArgumentException::new);
+                ListPendingAssignmentsRequest listPendingAssignmentsRequest = ListPendingAssignmentsRequest
+                        .newBuilder()
+                        .setSectorName(sectorName)
+                        .build();
+                ListPendingAssignmentsResponse listPendingAssignmentsResponse = stub.listPendingAssignments(listPendingAssignmentsRequest);
+                List<CounterAssignment> assignmentsList = listPendingAssignmentsResponse.getAssignmentsList();
+                System.out.println("Counters  Airline          Flights");
+                System.out.println("##########################################################");
+                for(CounterAssignment assignment : assignmentsList) {
+                    System.out.print(assignment.getCounterCount() + "         " + assignment.getAirline() + "        ");
+                    List<String> flights = assignment.getFlightsList().stream().toList();
+                    for(int i = 0; i < flights.size();) {
+                        System.out.print(flights.get(i));
+                        i++;
+                        if(i < flights.size()) {
+                            System.out.print("|");
+                        }
+                    }
+                    System.out.println();
+                }
 
                 break;
             default:
