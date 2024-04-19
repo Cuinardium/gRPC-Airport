@@ -3,12 +3,13 @@ package ar.edu.itba.pod.server.repositories;
 import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
 import ar.edu.itba.pod.server.models.Passenger;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class PassengerRepositoryImpl implements PassengerRepository {
 
-    private final ConcurrentHashMap<String, Passenger> expectedPassengers;
+    private final Map<String, Passenger> expectedPassengers;
 
     public PassengerRepositoryImpl() {
         this.expectedPassengers = new ConcurrentHashMap<>();
