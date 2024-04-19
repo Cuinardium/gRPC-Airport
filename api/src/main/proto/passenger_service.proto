@@ -43,6 +43,7 @@ message FetchCounterResponse {
   // Solo si se asigno el vuelo a un mostrador
   CounterRange counters = 4;
   int32 passengers_in_queue = 5;
+  string sector = 6;
 }
 
 // --
@@ -58,6 +59,7 @@ message PassengerCheckinResponse {
   string airline = 2;
   CounterRange counters = 3;
   int32 passengers_in_queue = 4;
+  string sector = 5;
 }
 
 // --
