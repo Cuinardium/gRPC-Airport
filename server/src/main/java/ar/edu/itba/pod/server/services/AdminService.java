@@ -2,6 +2,7 @@ package ar.edu.itba.pod.server.services;
 
 import ar.edu.itba.pod.grpc.admin.*;
 import ar.edu.itba.pod.grpc.common.CounterRange;
+import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
 import ar.edu.itba.pod.server.models.Passenger;
 import ar.edu.itba.pod.server.models.Range;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
