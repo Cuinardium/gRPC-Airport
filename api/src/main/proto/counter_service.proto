@@ -92,6 +92,8 @@ message FreeCountersRequest {
 
 message FreeCountersResponse {
   int32 freed_counters = 1;
+  repeated string flights = 2;
+  CounterRange counter_range = 3;
 }
 
 // --
