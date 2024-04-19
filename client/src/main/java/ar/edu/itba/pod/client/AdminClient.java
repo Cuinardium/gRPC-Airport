@@ -19,7 +19,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 public class AdminClient {
-    private static Logger logger = LoggerFactory.getLogger(Client.class);
+    private static final Logger logger = LoggerFactory.getLogger(AdminClient.class);
 
     public static void main(String[] args) throws InterruptedException {
         logger.info("tpe1-g4 Admin Client Starting ...");

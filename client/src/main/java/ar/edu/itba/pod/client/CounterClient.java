@@ -13,7 +13,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 public class CounterClient {
-    private static Logger logger = LoggerFactory.getLogger(Client.class);
+    private static final Logger logger = LoggerFactory.getLogger(CounterClient.class);
 
     public static void main(String[] args) throws InterruptedException {
         logger.info("tpe1-g4 Counter Client Starting ...");

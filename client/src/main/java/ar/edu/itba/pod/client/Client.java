@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.TimeUnit;
 
 public class Client {
-    private static Logger logger = LoggerFactory.getLogger(Client.class);
+    private static final Logger logger = LoggerFactory.getLogger(Client.class);
 
     public static void main(String[] args) throws InterruptedException {
         logger.info("tpe1-g4 Client Starting ...");

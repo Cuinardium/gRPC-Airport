@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 public class PassengerClient {
-    private static Logger logger = LoggerFactory.getLogger(Client.class);
+    private static final Logger logger = LoggerFactory.getLogger(PassengerClient.class);
 
     public static void main(String[] args) throws InterruptedException {
         logger.info("tpe1-g4 Passenger Client Starting ...");
