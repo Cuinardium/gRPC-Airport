@@ -109,5 +109,80 @@ public class CheckinRepositoryTest {
         Assertions.assertEquals(this.checkins.get(3), checkins.get(1));
     }
 
+    @Test
+    public final void testConcurrentAdd() throws AlreadyExistsException {
+        List<List<Checkin>> repeatedCheckins = new LinkedList<>();
 
+        for (Checkin checkin : checkins) {
+            List<Checkin> aux = new LinkedList<>();
+
+            for (int i = 0; i < 1000; i++) {
+                aux.add(
+                        new Checkin(
+                                checkin.sector(),
+                                checkin.counter(),
+                                checkin.airline(),
+                                checkin.flight(),
+                                String.valueOf(Integer.parseInt(checkin.booking()) + i)));
+            }
+
+            repeatedCheckins.add(aux);
+        }
+
+        CountDownLatch latch = new CountDownLatch(repeatedCheckins.size());
+
+        for (List<Checkin> checkins : repeatedCheckins) {
+            new Thread(
+                            () -> {
+                                for (Checkin checkin : checkins) {
+                                    try {
+                                        checkinRepository.addCheckin(checkin);
+
+                                        Thread.sleep((long) (Math.random() * 10));
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+
+                                Assertions.assertTrue(
+                                        checkListContainedInOrder(
+                                                checkins, checkinRepository.getCheckins()));
+
+                                latch.countDown();
+                            })
+                    .start();
+        }
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        for (List<Checkin> checkins : repeatedCheckins) {
+            Assertions.assertTrue(
+                    checkListContainedInOrder(checkins, checkinRepository.getCheckins()));
+        }
+    }
+
+    // Returns true if the subList is contained in the list in the same order
+    // if the sublist is [A, B, C] and the list is [A, D, B, E, C, F] then the method should return
+    // true
+    private boolean checkListContainedInOrder(List<Checkin> subList, List<Checkin> list) {
+        int currentListIndex = 0;
+
+        for (Checkin checkin : subList) {
+            List<Checkin> currentList = list.subList(currentListIndex, list.size());
+
+            int checkinIndex = currentList.indexOf(checkin);
+
+            if (checkinIndex == -1) {
+                return false;
+            }
+
+            currentListIndex = checkinIndex;
+        }
+
+        return true;
+    }
 }

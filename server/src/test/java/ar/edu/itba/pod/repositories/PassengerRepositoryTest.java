@@ -114,14 +114,6 @@ public class PassengerRepositoryTest {
                                 int random = (int) (Math.random() * 1000);
 
                                 for (int i = 0; i < 1000; i++) {
-
-                                    if (i == random) {
-                                        foundAirline.put(
-                                                passenger.airline(),
-                                                passengerRepository.hasAirline(
-                                                        passenger.airline()));
-                                    }
-
                                     try {
                                         passengerRepository.addPassenger(
                                                 new Passenger(
@@ -134,6 +126,13 @@ public class PassengerRepositoryTest {
 
                                         Thread.sleep((long) (Math.random() * 10));
                                     } catch (Exception e) {
+                                    }
+
+                                    if (i == random) {
+                                        foundAirline.put(
+                                                passenger.airline(),
+                                                passengerRepository.hasAirline(
+                                                        passenger.airline()));
                                     }
                                 }
 
