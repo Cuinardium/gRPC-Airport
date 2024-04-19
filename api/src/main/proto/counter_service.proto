@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
+
 option java_multiple_files = true;
 option java_package = "ar.edu.itba.pod.grpc.counter";
 
@@ -38,7 +40,7 @@ message CounterAssignment {
 }
 
 service CounterService {
-  rpc ListSectors(ListSectorsRequest) returns (ListSectorsResponse);
+  rpc ListSectors(google.protobuf.Empty) returns (ListSectorsResponse);
   rpc ListCounters(ListCountersRequest) returns (ListCountersResponse);
   rpc AssignCounters(AssignCountersRequest) returns (AssignCountersResponse);
   rpc FreeCounters(FreeCountersRequest) returns (FreeCountersResponse);
@@ -47,8 +49,6 @@ service CounterService {
 }
 
 // --
-
-message ListSectorsRequest {}
 
 message ListSectorsResponse {
   repeated SectorInfo sectors = 1;

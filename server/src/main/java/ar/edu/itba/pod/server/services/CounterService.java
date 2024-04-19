@@ -5,6 +5,7 @@ import ar.edu.itba.pod.server.events.EventManager;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
 import ar.edu.itba.pod.server.repositories.PassengerRepository;
+import com.google.protobuf.Empty;
 
 import io.grpc.stub.StreamObserver;
 
@@ -52,5 +53,5 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
 
     @Override
     public void listSectors(
-            ListSectorsRequest request, StreamObserver<ListSectorsResponse> responseObserver) {}
+            Empty request, StreamObserver<ListSectorsResponse> responseObserver) {}
 }

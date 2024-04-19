@@ -1,11 +1,16 @@
 package ar.edu.itba.pod.client;
 
+import ar.edu.itba.pod.grpc.common.CounterRange;
 import ar.edu.itba.pod.grpc.counter.CounterServiceGrpc;
+import ar.edu.itba.pod.grpc.counter.ListSectorsResponse;
+import ar.edu.itba.pod.grpc.counter.SectorInfo;
+import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -56,7 +61,17 @@ public class CounterClient {
     private static void executeAction(String action, CounterServiceGrpc.CounterServiceBlockingStub stub) {
         switch (action) {
             case "listSectors":
-
+                ListSectorsResponse listSectorsResponse = stub.listSectors(Empty.getDefaultInstance());
+                List<SectorInfo> sectorsList = listSectorsResponse.getSectorsList();
+                System.out.println("Sectors   Counters");
+                System.out.println("###################");
+                for(SectorInfo sector : sectorsList) {
+                    System.out.print(sector.getSectorName() + "         ");
+                    for(CounterRange range : sector.getCounterRangesList()) {
+                        System.out.print("("+range.getTo()+"-"+range.getFrom()+")");
+                    }
+                    System.out.println();
+                }
                 break;
 
             case "listCounters":
