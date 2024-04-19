@@ -57,6 +57,7 @@ public class CounterClient {
     }
 
     private static void executeAction(String action, CounterServiceGrpc.CounterServiceBlockingStub stub) {
+        String sectorName;
         switch (action) {
             case "listSectors":
                 ListSectorsResponse listSectorsResponse = stub.listSectors(Empty.getDefaultInstance());
@@ -64,16 +65,47 @@ public class CounterClient {
                 System.out.println("Sectors   Counters");
                 System.out.println("###################");
                 for(SectorInfo sector : sectorsList) {
-                    System.out.print(sector.getSectorName() + "         ");
-                    for(CounterRange range : sector.getCounterRangesList()) {
-                        System.out.print("("+range.getTo()+"-"+range.getFrom()+")");
+                    StringBuilder rangeStringBuilder = new StringBuilder();
+                    if(sector.getCounterRangesList().isEmpty()) {
+                        rangeStringBuilder.append("-");
                     }
-                    System.out.println();
+                    for(CounterRange range : sector.getCounterRangesList()) {
+                        rangeStringBuilder.append("(").append(range.getTo()).append("-").append(range.getFrom()).append(")");
+                    }
+                    System.out.printf("%-10s%-10s\n", sector.getSectorName(), rangeStringBuilder);
                 }
                 break;
 
             case "listCounters":
-
+                sectorName = Optional.ofNullable(System.getProperty("sector")).orElseThrow(IllegalArgumentException::new);
+                int from = Integer.parseInt(Optional.ofNullable(System.getProperty("counterFrom")).orElseThrow(IllegalArgumentException::new));
+                int to = Integer.parseInt(Optional.ofNullable(System.getProperty("counterTo")).orElseThrow(IllegalArgumentException::new));
+                CounterRange range = CounterRange.newBuilder().setFrom(from).setTo(to).build();
+                ListCountersRequest listCountersRequest = ListCountersRequest.
+                        newBuilder().
+                        setSectorName(sectorName).
+                        setCounterRange(range).
+                        build();
+                ListCountersResponse listCountersResponse = stub.listCounters(listCountersRequest);
+                List<CounterInfo> counterInfoList = listCountersResponse.getCountersList();
+                System.out.println("Counters  Airline          Flights             People");
+                System.out.println("##########################################################");
+                for(CounterInfo counterInfo : counterInfoList) {
+                    range = counterInfo.getCounterRange();
+                    String rangeString = "("+range.getFrom()+"-"+range.getTo()+")";
+                    int passengers = counterInfo.getPassengersInQueue();
+                    String airline = counterInfo.getAssignedAirline();
+                    StringBuilder flightStringBuilder = new StringBuilder();
+                    List<String> flights = counterInfo.getAssignedFlightsList().stream().toList();
+                    for(int i = 0; i < flights.size();) {
+                        flightStringBuilder.append(flights.get(i));
+                        i++;
+                        if(i < flights.size()) {
+                            flightStringBuilder.append("|");
+                        }
+                    }
+                    System.out.printf("%-10s%-18s%-20s%-8s\n", rangeString, airline, flightStringBuilder, passengers == 0 ? "-":passengers);
+                }
                 break;
 
             case "assignCounters":
@@ -89,7 +121,7 @@ public class CounterClient {
                 break;
 
             case "listPendingAssignments":
-                String sectorName = Optional.ofNullable(System.getProperty("sector")).orElseThrow(IllegalArgumentException::new);
+                sectorName = Optional.ofNullable(System.getProperty("sector")).orElseThrow(IllegalArgumentException::new);
                 ListPendingAssignmentsRequest listPendingAssignmentsRequest = ListPendingAssignmentsRequest
                         .newBuilder()
                         .setSectorName(sectorName)
@@ -99,16 +131,16 @@ public class CounterClient {
                 System.out.println("Counters  Airline          Flights");
                 System.out.println("##########################################################");
                 for(CounterAssignment assignment : assignmentsList) {
-                    System.out.print(assignment.getCounterCount() + "         " + assignment.getAirline() + "        ");
+                    StringBuilder flightStringBuilder = new StringBuilder();
                     List<String> flights = assignment.getFlightsList().stream().toList();
                     for(int i = 0; i < flights.size();) {
-                        System.out.print(flights.get(i));
+                        flightStringBuilder.append(flights.get(i));
                         i++;
                         if(i < flights.size()) {
-                            System.out.print("|");
+                            flightStringBuilder.append("|");
                         }
                     }
-                    System.out.println();
+                    System.out.printf("%-10s%-18s%-12s\n", assignment.getCounterCount(), assignment.getAirline(), flightStringBuilder);
                 }
 
                 break;
