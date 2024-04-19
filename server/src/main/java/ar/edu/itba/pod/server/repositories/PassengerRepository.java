@@ -1,5 +1,6 @@
 package ar.edu.itba.pod.server.repositories;
 
+import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
 import ar.edu.itba.pod.server.models.Passenger;
 
 import java.util.Optional;
@@ -11,5 +12,5 @@ public interface PassengerRepository {
 
     Optional<Passenger> getPassenger(String booking);
 
-    void addPassenger(Passenger passenger);
+    void addPassenger(Passenger passenger) throws AlreadyExistsException;
 }

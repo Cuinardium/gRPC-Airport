@@ -35,5 +35,10 @@ public class PassengerRepositoryImpl implements PassengerRepository {
     @Override
     public void addPassenger(Passenger passenger) {
         expectedPassengers.add(passenger);
+    public void addPassenger(Passenger passenger) throws AlreadyExistsException {
+        if (hasPassenger(passenger)) {
+            throw new AlreadyExistsException("Passenger already exists");
+        }
+
     }
 }

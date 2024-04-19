@@ -113,20 +113,17 @@ public class AdminService extends AdminServiceGrpc.AdminServiceImplBase {
             return;
         }
 
-        if(passengerRepository.hasPassenger(passenger)){
+        try {
+            passengerRepository.addPassenger(passenger);
+        } catch (AlreadyExistsException e) {
             responseObserver.onError(
                     Status.ALREADY_EXISTS
                             .withDescription("This passenger was already added")
-                            .asRuntimeException()
-            );
+                            .asRuntimeException());
             return;
         }
-
-        passengerRepository.addPassenger(passenger);
 
         responseObserver.onNext(Empty.getDefaultInstance());
         responseObserver.onCompleted();
     }
-
-
 }

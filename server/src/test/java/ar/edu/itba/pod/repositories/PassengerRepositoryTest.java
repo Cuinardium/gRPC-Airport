@@ -1,5 +1,6 @@
 package ar.edu.itba.pod.repositories;
 
+import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
 import ar.edu.itba.pod.server.models.Passenger;
 import ar.edu.itba.pod.server.repositories.PassengerRepository;
 import ar.edu.itba.pod.server.repositories.PassengerRepositoryImpl;
@@ -30,8 +31,10 @@ public class PassengerRepositoryTest {
     }
 
     @Test
-    public void addPassengers() {
-        passengers.forEach(passengerRepository::addPassenger);
+    public void addPassengers() throws AlreadyExistsException {
+        for (Passenger passenger : passengers) {
+            passengerRepository.addPassenger(passenger);
+        }
 
         for (Passenger passenger : passengers) {
             Optional<Passenger> possiblePassenger =
@@ -43,8 +46,19 @@ public class PassengerRepositoryTest {
     }
 
     @Test
-    public void hasAirlineTrue() {
-        passengers.forEach(passengerRepository::addPassenger);
+    public void addPassengerAlreadyExists() throws AlreadyExistsException {
+        Passenger passenger = passengers.get(0);
+        passengerRepository.addPassenger(passenger);
+
+        Assertions.assertThrows(
+                AlreadyExistsException.class, () -> passengerRepository.addPassenger(passenger));
+    }
+
+    @Test
+    public void hasAirlineTrue() throws AlreadyExistsException {
+        for (Passenger passenger : passengers) {
+            passengerRepository.addPassenger(passenger);
+        }
 
         for (Passenger passenger : passengers) {
             Assertions.assertTrue(passengerRepository.hasAirline(passenger.airline()));
@@ -52,15 +66,19 @@ public class PassengerRepositoryTest {
     }
 
     @Test
-    public void hasAirlineFalse() {
-        passengers.forEach(passengerRepository::addPassenger);
+    public void hasAirlineFalse() throws AlreadyExistsException {
+        for (Passenger passenger : passengers) {
+            passengerRepository.addPassenger(passenger);
+        }
 
         Assertions.assertFalse(passengerRepository.hasAirline("Lufthansa"));
     }
 
     @Test
-    public void hasPassengerTrue() {
-        passengers.forEach(passengerRepository::addPassenger);
+    public void hasPassengerTrue() throws AlreadyExistsException {
+        for (Passenger passenger : passengers) {
+            passengerRepository.addPassenger(passenger);
+        }
 
         for (Passenger passenger : passengers) {
             Assertions.assertTrue(passengerRepository.hasPassenger(passenger));
@@ -68,8 +86,10 @@ public class PassengerRepositoryTest {
     }
 
     @Test
-    public void hasPassengerFalse() {
-        passengers.forEach(passengerRepository::addPassenger);
+    public void hasPassengerFalse() throws AlreadyExistsException {
+        for (Passenger passenger : passengers) {
+            passengerRepository.addPassenger(passenger);
+        }
 
         Assertions.assertFalse(
                 passengerRepository.hasPassenger(new Passenger("777777", "LH7777", "Lufthansa")));
