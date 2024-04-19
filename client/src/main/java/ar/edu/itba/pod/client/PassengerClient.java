@@ -53,15 +53,15 @@ public class PassengerClient {
 
     private static void executeAction(String action, PassengerServiceGrpc.PassengerServiceBlockingStub stub) {
         switch (action) {
-            case "register":
+            case "fetchCounter":
 
                 break;
 
-            case "unregister":
+            case "passengerCheckin":
 
                 break;
 
-            case "history":
+            case "passengerStatus":
 
                 break;
             default:

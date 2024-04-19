@@ -53,15 +53,15 @@ public class EventsClient {
 
     private static void executeAction(String action, EventsServiceGrpc.EventsServiceStub stub) {
         switch (action) {
-            case "fetchCounter":
+            case "register":
 
                 break;
 
-            case "passengerCheckin":
+            case "unregister":
 
                 break;
 
-            case "passengerStatus":
+            case "history":
 
                 break;
             default:
