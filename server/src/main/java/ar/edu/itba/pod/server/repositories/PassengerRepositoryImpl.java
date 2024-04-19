@@ -17,9 +17,7 @@ public class PassengerRepositoryImpl implements PassengerRepository {
     @Override
     public boolean hasAirline(String airline) {
         return expectedPassengers.stream()
-                .filter(passenger -> passenger.airline().equals(airline))
-                .findAny()
-                .isEmpty();
+                .anyMatch(passenger -> passenger.airline().equals(airline));
     }
 
     @Override
