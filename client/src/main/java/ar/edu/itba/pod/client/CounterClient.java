@@ -173,7 +173,28 @@ public class CounterClient {
                 break;
 
             case "checkinCounters":
-
+                sectorName = Optional.ofNullable(System.getProperty("sector")).orElseThrow(IllegalArgumentException::new);
+                counterFrom = Integer.parseInt(Optional.ofNullable(System.getProperty("counterFrom")).orElseThrow(IllegalArgumentException::new));
+                airline = Optional.ofNullable(System.getProperty("airline")).orElseThrow(IllegalArgumentException::new);
+                CheckinCountersRequest checkinCountersRequest = CheckinCountersRequest
+                        .newBuilder()
+                        .setSectorName(sectorName)
+                        .setCounterFrom(counterFrom)
+                        .setAirline(airline)
+                        .build();
+                CheckinCountersResponse checkinCountersResponse = stub.checkinCounters(checkinCountersRequest);
+                List<CheckInInfo> successfulCheckinsList = checkinCountersResponse.getSuccessfulCheckinsList();
+                int idleCounterCount = checkinCountersResponse.getIdleCounterCount();
+                int counter = counterFrom;
+                for(CheckInInfo checkInInfo : successfulCheckinsList) {
+                    counter = checkInInfo.getCounter();
+                    String booking = checkInInfo.getBooking();
+                    String flight = checkInInfo.getFlight();
+                    System.out.println("Check-in successful of "+booking+" for flight "+flight+" at counter "+counter);
+                }
+                for (int i = 1 ; i <= idleCounterCount ; i++) {
+                    System.out.println("Counter "+counter+i+" is idle");
+                }
                 break;
 
             case "listPendingAssignments":
