@@ -1,5 +1,6 @@
 package ar.edu.itba.pod.server.repositories;
 
+import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
 import ar.edu.itba.pod.server.models.Checkin;
 
 import java.util.*;
@@ -15,7 +16,13 @@ public class CheckinRepositoryImpl implements CheckinRepository {
     }
 
     @Override
-    public void addCheckin(Checkin checkin) {
+    public void addCheckin(Checkin checkin) throws AlreadyExistsException {
+
+        if (hasCheckin(checkin.booking())) {
+            throw new AlreadyExistsException(
+                    "A passenger with the given booking has already checkin");
+        }
+
         checkins.add(checkin);
     }
 

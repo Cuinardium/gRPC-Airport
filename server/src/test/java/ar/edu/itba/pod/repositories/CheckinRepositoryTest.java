@@ -1,28 +1,30 @@
 package ar.edu.itba.pod.repositories;
 
+import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
 import ar.edu.itba.pod.server.models.Checkin;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
 import ar.edu.itba.pod.server.repositories.CheckinRepositoryImpl;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 
 public class CheckinRepositoryTest {
 
-    private CheckinRepository checkinRepository;
-
     private final List<Checkin> checkins =
             List.of(
-                    new Checkin("A", 1, "Aerolineas Argentinas", "AR1234", "123456"),
-                    new Checkin("B", 2, "LATAM", "LA4321", "654321"),
-                    new Checkin("C", 3, "American Airlines", "AA1111", "111111"),
-                    new Checkin("A", 4, "British Airways", "BA2222", "222222"),
-                    new Checkin("B", 5, "Iberia", "IB3333", "333333"),
-                    new Checkin("C", 6, "Air France", "AF4444", "444444"));
+                    new Checkin("A", 1, "Aerolineas Argentinas", "AR1234", "111111"),
+                    new Checkin("B", 2, "LATAM", "LA4321", "222222"),
+                    new Checkin("C", 3, "American Airlines", "AA1111", "333333"),
+                    new Checkin("A", 4, "British Airways", "BA2222", "444444"),
+                    new Checkin("B", 5, "Iberia", "IB3333", "555555"),
+                    new Checkin("C", 6, "Air France", "AF4444", "666666"));
+    private CheckinRepository checkinRepository;
 
     @BeforeEach
     public final void setUp() {
@@ -30,8 +32,10 @@ public class CheckinRepositoryTest {
     }
 
     @Test
-    public final void testMultipleCheckinOrder() {
-        checkins.forEach(checkinRepository::addCheckin);
+    public final void testMultipleCheckinOrder() throws AlreadyExistsException {
+        for (Checkin checkin : checkins) {
+            checkinRepository.addCheckin(checkin);
+        }
 
         List<Checkin> checkins = checkinRepository.getCheckins();
 
@@ -43,19 +47,26 @@ public class CheckinRepositoryTest {
     }
 
     @Test
-    public final void testOneCheckin() {
+    public final void testOneCheckin() throws AlreadyExistsException {
         checkinRepository.addCheckin(checkins.get(0));
 
-
-        Optional<Checkin> checkin = checkinRepository.getCheckin("123456");
+        Optional<Checkin> checkin = checkinRepository.getCheckin("111111");
 
         Assertions.assertTrue(checkin.isPresent());
         Assertions.assertEquals(checkins.get(0), checkin.get());
     }
 
     @Test
+    public final void testAlreadyExists() throws AlreadyExistsException {
+        checkinRepository.addCheckin(checkins.get(0));
+
+        Assertions.assertThrows(
+                AlreadyExistsException.class, () -> checkinRepository.addCheckin(checkins.get(0)));
+    }
+
+    @Test
     public final void testNoCheckin() {
-        Optional<Checkin> checkin = checkinRepository.getCheckin("123456");
+        Optional<Checkin> checkin = checkinRepository.getCheckin("111111");
 
         Assertions.assertTrue(checkin.isEmpty());
     }
@@ -66,7 +77,7 @@ public class CheckinRepositoryTest {
     }
 
     @Test
-    public final void testHasCheckinsNotEmpty() {
+    public final void testHasCheckinsNotEmpty() throws AlreadyExistsException {
         checkinRepository.addCheckin(checkins.get(0));
 
         Assertions.assertTrue(checkinRepository.hasCheckins());
@@ -74,21 +85,24 @@ public class CheckinRepositoryTest {
 
     @Test
     public final void testHasCheckinEmpty() {
-        Assertions.assertFalse(checkinRepository.hasCheckin("123456"));
+        Assertions.assertFalse(checkinRepository.hasCheckin("111111"));
     }
 
     @Test
-    public final void testHasCheckinNotEmpty() {
+    public final void testHasCheckinNotEmpty() throws AlreadyExistsException {
         checkinRepository.addCheckin(checkins.get(0));
 
-        Assertions.assertTrue(checkinRepository.hasCheckin("123456"));
+        Assertions.assertTrue(checkinRepository.hasCheckin("111111"));
     }
 
     @Test
-    public final void testGetCheckinsPredicate() {
-        checkins.forEach(checkinRepository::addCheckin);
+    public final void testGetCheckinsPredicate() throws AlreadyExistsException {
+        for (Checkin checkin : checkins) {
+            checkinRepository.addCheckin(checkin);
+        }
 
-        List<Checkin> checkins = checkinRepository.getCheckins(checkin -> checkin.sector().equals("A"));
+        List<Checkin> checkins =
+                checkinRepository.getCheckins(checkin -> checkin.sector().equals("A"));
 
         Assertions.assertEquals(2, checkins.size());
         Assertions.assertEquals(this.checkins.get(0), checkins.get(0));
