@@ -65,9 +65,6 @@ public class QueryClient {
 
                 break;
 
-            case "history":
-
-                break;
             default:
                 // TODO: Exception?
                 logger.error("Unknown action: {}", action);

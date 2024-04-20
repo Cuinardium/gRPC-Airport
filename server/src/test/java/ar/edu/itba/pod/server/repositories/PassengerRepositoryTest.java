@@ -1,4 +1,4 @@
-package ar.edu.itba.pod.repositories;
+package ar.edu.itba.pod.server.repositories;
 
 import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
 import ar.edu.itba.pod.server.models.Passenger;

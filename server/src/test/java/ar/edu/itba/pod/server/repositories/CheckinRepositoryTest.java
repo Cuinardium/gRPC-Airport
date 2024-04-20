@@ -1,4 +1,4 @@
-package ar.edu.itba.pod.repositories;
+package ar.edu.itba.pod.server.repositories;
 
 import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
 import ar.edu.itba.pod.server.models.Checkin;
@@ -11,7 +11,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 
 public class CheckinRepositoryTest {
@@ -130,6 +132,7 @@ public class CheckinRepositoryTest {
         }
 
         CountDownLatch latch = new CountDownLatch(repeatedCheckins.size());
+        Map<String, Boolean> checkinsContainedInOrder = new ConcurrentHashMap<>();
 
         for (List<Checkin> checkins : repeatedCheckins) {
             new Thread(
@@ -144,9 +147,8 @@ public class CheckinRepositoryTest {
                                     }
                                 }
 
-                                Assertions.assertTrue(
-                                        checkListContainedInOrder(
-                                                checkins, checkinRepository.getCheckins()));
+                                checkinsContainedInOrder.put(
+                                        checkins.get(0).booking(), checkListContainedInOrder(checkins, checkinRepository.getCheckins()));
 
                                 latch.countDown();
                             })
@@ -162,6 +164,10 @@ public class CheckinRepositoryTest {
         for (List<Checkin> checkins : repeatedCheckins) {
             Assertions.assertTrue(
                     checkListContainedInOrder(checkins, checkinRepository.getCheckins()));
+        }
+
+        for (Boolean contained : checkinsContainedInOrder.values()) {
+            Assertions.assertTrue(contained);
         }
     }
 
