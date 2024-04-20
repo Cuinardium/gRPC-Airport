@@ -60,12 +60,19 @@ public class PassengerClient {
                         .setBooking(booking)
                         .build();
                 FetchCounterResponse fetchCounterResponse= stub.fetchCounter(fetchCounterRequest);
-                if (fetchCounterResponse.getStatus() == FlightStatus.FLIGHT_STATUS_ASSIGNED){
-                    System.out.println("Flight " + fetchCounterResponse.getFlight() + " from " + fetchCounterResponse.getAirline() + " is now checking in at counters ("
-                            + fetchCounterResponse.getCounters().getFrom() + "- " + fetchCounterResponse.getCounters().getTo() + ") in Sector " + fetchCounterResponse.getSector()
-                            + " with " + fetchCounterResponse.getPassengersInQueue() + " people in line");
-                }else {
-                    System.out.println("Flight " + fetchCounterResponse.getFlight() + " from " + fetchCounterResponse.getAirline() + " has no counters assigned yet");
+                switch (fetchCounterResponse.getStatus()) {
+                    case FLIGHT_STATUS_ASSIGNED:
+                        System.out.println("Flight " + fetchCounterResponse.getFlight() + " from " + fetchCounterResponse.getAirline() + " is now checking in at counters ("
+                                + fetchCounterResponse.getCounters().getFrom() + "- " + fetchCounterResponse.getCounters().getTo() + ") in Sector " + fetchCounterResponse.getSector()
+                                + " with " + fetchCounterResponse.getPassengersInQueue() + " people in line");
+                        break;
+                    case FLIGHT_STATUS_UNASSIGNED:
+                        System.out.println("Flight " + fetchCounterResponse.getFlight() + " from " + fetchCounterResponse.getAirline() + " has no counters assigned yet");
+                        break;
+                    case FLIGHT_STATUS_UNSPECIFIED:
+                        // TODO: idk
+                        break;
+
                 }
                 break;
 
@@ -105,6 +112,9 @@ public class PassengerClient {
                         System.out.println("Booking " + booking + " for flight " + passengerStatusResponse.getFlight() + " from " + passengerStatusResponse.getAirline()
                                 + " can check-in on counters (" + passengerStatusResponse.getCounters().getFrom() + "-" + passengerStatusResponse.getCounters().getTo()
                                 + ") in Sector " + passengerStatusResponse.getSectorName());
+                        break;
+                    case PASSENGER_STATUS_UNSPECIFIED:
+                        // TODO: idk
                         break;
                 }
                 break;
