@@ -9,11 +9,15 @@ import ar.edu.itba.pod.server.repositories.CounterRepository;
 
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.function.Predicate;
 
 public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
+
+    private static final Logger logger = LoggerFactory.getLogger(QueryService.class);
 
     private final CounterRepository counterRepository;
     private final CheckinRepository checkinRepository;
@@ -27,11 +31,15 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
     public void checkins(
             CheckinsRequest request, StreamObserver<CheckinsResponse> responseObserver) {
 
+        logger.debug("Received checkins request");
+
         if (!checkinRepository.hasCheckins()) {
             responseObserver.onError(
                     Status.NOT_FOUND
                             .withDescription("No checkins have been registered")
                             .asRuntimeException());
+
+            logger.debug("checkins request failed: no checkins have been registered");
 
             return;
         }
@@ -43,10 +51,14 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
 
         if (!sector.isEmpty()) {
             predicate = predicate.and(checkin -> checkin.sector().equals(sector));
+
+            logger.debug("filtering checkins by sector: {}", sector);
         }
 
         if (!airline.isEmpty()) {
             predicate = predicate.and(checkin -> checkin.airline().equals(airline));
+
+            logger.debug("filtering checkins by airline: {}", airline);
         }
 
         List<CheckinInfo> checkins =
@@ -66,17 +78,23 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
 
         responseObserver.onNext(response);
         responseObserver.onCompleted();
+
+        logger.debug("checkins request completed successfully");
     }
 
     @Override
     public void counters(
             CountersRequest request, StreamObserver<CountersResponse> responseObserver) {
 
+        logger.debug("Received counters request");
+
         if (!counterRepository.hasCounters()) {
             responseObserver.onError(
                     Status.NOT_FOUND
                             .withDescription("No counters have been added to this airport")
                             .asRuntimeException());
+
+            logger.debug("counters request failed: no counters have been added to this airport");
 
             return;
         }
@@ -87,6 +105,8 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
 
         if (!sector.isEmpty()) {
             predicate = predicate.and(countersRange -> countersRange.sector().equals(sector));
+
+            logger.debug("filtering counters by sector: {}", sector);
         }
 
         List<CountersInfo> counters =
@@ -98,6 +118,8 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
 
         responseObserver.onNext(response);
         responseObserver.onCompleted();
+
+        logger.debug("counters request completed successfully");
     }
 
     private CountersInfo mapCountersRangeToCountersInfo(CountersRange countersRange) {
