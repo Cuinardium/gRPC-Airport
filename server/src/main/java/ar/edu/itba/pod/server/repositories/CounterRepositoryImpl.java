@@ -16,8 +16,8 @@ public class CounterRepositoryImpl implements CounterRepository {
     }
 
     @Override
-    public Sector getSector(String sectorName) {
-        return null;
+    public Optional<Sector> getSector(String sectorName) {
+        return Optional.empty();
     }
 
     @Override

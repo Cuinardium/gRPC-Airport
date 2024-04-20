@@ -106,7 +106,7 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
         List<Sector> sectors = new ArrayList<>();
 
         if (!sectorName.isEmpty()) {
-            sectors.add(counterRepository.getSector(sectorName));
+            counterRepository.getSector(sectorName).ifPresent(sectors::add);
             logger.debug("(queryService/counters) filtering counters by sector: {}", sectorName);
         }
         else{

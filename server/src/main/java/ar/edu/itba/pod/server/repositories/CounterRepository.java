@@ -11,7 +11,7 @@ import java.util.Optional;
 public interface CounterRepository {
 
     List<Sector> getSectors();
-    Sector getSector(String sectorName);
+    Optional<Sector> getSector(String sectorName);
 
     // Lists sorted by range
     List<CountersRange> getCounters();
