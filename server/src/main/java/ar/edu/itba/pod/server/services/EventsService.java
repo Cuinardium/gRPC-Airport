@@ -107,6 +107,11 @@ public class EventsService extends EventsServiceGrpc.EventsServiceImplBase {
         try {
             eventManager.register(airline, responseObserver);
 
+            responseObserver.onNext(
+                    RegisterResponse.newBuilder()
+                            .setEventType(EventType.EVENT_TYPE_AIRLINE_REGISTERED)
+                            .build());
+
             logger.debug("(eventsService/register) registered airline {}", airline);
         } catch (AlreadyExistsException e) {
             responseObserver.onError(
