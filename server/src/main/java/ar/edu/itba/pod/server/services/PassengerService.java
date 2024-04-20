@@ -13,6 +13,7 @@ import ar.edu.itba.pod.server.repositories.CheckinRepository;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
 import ar.edu.itba.pod.server.repositories.PassengerRepository;
 
+import ar.edu.itba.pod.server.utils.Pair;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 
@@ -235,8 +236,8 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
 
         Passenger passenger = possiblePassenger.get();
 
-        Optional<CountersRange> possibleAssignedCounters =
-                counterRepository.getFlightCounters(passenger.flight());
+        Optional<Pair<CountersRange, String>> possibleAssignedCounters =
+                counterRepository.getFlightCountersAndSector(passenger.flight());
 
         if (possibleAssignedCounters.isEmpty()) {
             responseObserver.onError(
@@ -247,13 +248,14 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
             return;
         }
 
-        CountersRange assignedCounters = possibleAssignedCounters.get();
+        Pair<CountersRange, String> counterSectorPair = possibleAssignedCounters.get();
+        CountersRange assignedCounters = counterSectorPair.first();
 
         PassengerStatusResponse.Builder responseBuilder =
                 PassengerStatusResponse.newBuilder()
                         .setAirline(passenger.airline())
                         .setFlight(passenger.flight())
-                        .setSectorName(assignedCounters.sector());
+                        .setSectorName(counterSectorPair.second());
 
         Optional<Checkin> possibleCheckin = checkinRepository.getCheckin(booking);
 

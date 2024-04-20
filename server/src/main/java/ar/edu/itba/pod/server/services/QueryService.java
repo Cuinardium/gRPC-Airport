@@ -4,12 +4,14 @@ import ar.edu.itba.pod.grpc.common.CounterRange;
 import ar.edu.itba.pod.grpc.query.*;
 import ar.edu.itba.pod.server.models.Checkin;
 import ar.edu.itba.pod.server.models.CountersRange;
+import ar.edu.itba.pod.server.models.Sector;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
 
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -81,29 +83,36 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
             return;
         }
 
-        String sector = request.getSectorName();
+        String sectorName = request.getSectorName();
 
-        Predicate<CountersRange> predicate = countersRange -> true;
+        List<Sector> sectors = new ArrayList<>();
 
-        if (!sector.isEmpty()) {
-            predicate = predicate.and(countersRange -> countersRange.sector().equals(sector));
+        if (!sectorName.isEmpty()) {
+            sectors.add(counterRepository.getSector(sectorName));
+        }
+        else{
+            sectors = counterRepository.getSectors();
         }
 
-        List<CountersInfo> counters =
-                counterRepository.getCounters(predicate).stream()
-                        .map(this::mapCountersRangeToCountersInfo)
-                        .toList();
+        CountersResponse.Builder responseBuilder = CountersResponse.newBuilder();
 
-        CountersResponse response = CountersResponse.newBuilder().addAllCounters(counters).build();
+        for (Sector sector : sectors){
+            List<CountersInfo> counters =
+                    sector.countersRangeList().stream()
+                            .map(counterRange -> mapCountersRangeToCountersInfo(counterRange, sector.sectorName()))
+                            .toList();
 
-        responseObserver.onNext(response);
+            responseBuilder.addAllCounters(counters);
+        }
+
+        responseObserver.onNext(responseBuilder.build());
         responseObserver.onCompleted();
     }
 
-    private CountersInfo mapCountersRangeToCountersInfo(CountersRange countersRange) {
+    private CountersInfo mapCountersRangeToCountersInfo(CountersRange countersRange, String sectorName) {
         CountersInfo.Builder countersInfoBuilder =
                 CountersInfo.newBuilder()
-                        .setSectorName(countersRange.sector())
+                        .setSectorName(sectorName)
                         .setCounters(
                                 CounterRange.newBuilder()
                                         .setFrom(countersRange.range().from())

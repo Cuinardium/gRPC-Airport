@@ -5,6 +5,7 @@ import ar.edu.itba.pod.grpc.counter.*;
 import ar.edu.itba.pod.server.events.EventManager;
 import ar.edu.itba.pod.server.models.CountersRange;
 import ar.edu.itba.pod.server.models.Range;
+import ar.edu.itba.pod.server.models.Sector;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
 import ar.edu.itba.pod.server.repositories.PassengerRepository;
@@ -67,48 +68,28 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
     @Override
     public void listSectors(
             Empty request, StreamObserver<ListSectorsResponse> responseObserver) {
-        List<CountersRange> countersRanges = counterRepository.getCounters();
+        ListSectorsResponse.Builder responseBuilder = ListSectorsResponse.newBuilder();
 
-        List<SectorInfo> sectorsInfoList = generateSectorInfoList(countersRanges);
-
-        ListSectorsResponse response =
-                ListSectorsResponse.newBuilder()
-                        .addAllSectors(sectorsInfoList)
-                        .build();
-
-        responseObserver.onNext(response);
-        responseObserver.onCompleted();
-    }
-    //TODO: REVISE THIS
-    private List<SectorInfo> generateSectorInfoList(List<CountersRange> countersRanges) {
-        Map<String, List<CountersRange>> sectorsMap = new HashMap<>();
-
-        for (CountersRange countersRange : countersRanges) {
-            String sector = countersRange.sector();
-            if (!sectorsMap.containsKey(sector)) {
-                sectorsMap.put(sector, new ArrayList<>());
-            }
-            sectorsMap.get(sector).add(countersRange);
-        }
-
-        List<SectorInfo> sectorInfoList = new ArrayList<>();
-        for(Map.Entry<String, List<CountersRange>> entry : sectorsMap.entrySet()) {
-            String sector = entry.getKey();
-            List<CounterRange> counterRangesList = entry.getValue().stream().map((countersRange -> {
+        for (Sector sector : counterRepository.getSectors()) {
+            // Mapping from model to proto CounterRange
+            List<CounterRange> counterRangesList = sector.countersRangeList().stream().map((countersRange -> {
                 Range range = countersRange.range();
                 return CounterRange.newBuilder()
-                                .setFrom(range.from())
-                                .setTo(range.to())
-                                .build();
+                        .setFrom(range.from())
+                        .setTo(range.to())
+                        .build();
             })).collect(Collectors.toList());
 
+            // Create SectorInfo with provided sector
             SectorInfo sectorInfo =
                     SectorInfo.newBuilder()
-                            .setSectorName(sector)
+                            .setSectorName(sector.sectorName())
                             .addAllCounterRanges(counterRangesList)
                             .build();
-            sectorInfoList.add(sectorInfo);
+            responseBuilder.addSectors(sectorInfo);
         }
-        return sectorInfoList;
+
+        responseObserver.onNext(responseBuilder.build());
+        responseObserver.onCompleted();
     }
 }

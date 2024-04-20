@@ -2,6 +2,8 @@ package ar.edu.itba.pod.server.repositories;
 
 import ar.edu.itba.pod.server.models.CountersRange;
 import ar.edu.itba.pod.server.models.Range;
+import ar.edu.itba.pod.server.models.Sector;
+import ar.edu.itba.pod.server.utils.Pair;
 
 import java.util.List;
 import java.util.Optional;
@@ -9,17 +11,32 @@ import java.util.function.Predicate;
 
 public class CounterRepositoryImpl implements CounterRepository {
     @Override
+    public List<Sector> getSectors() {
+        return List.of();
+    }
+
+    @Override
+    public Sector getSector(String sectorName) {
+        return null;
+    }
+
+    @Override
     public List<CountersRange> getCounters() {
         return List.of();
     }
 
     @Override
-    public List<CountersRange> getCounters(Predicate<CountersRange> predicate) {
+    public List<CountersRange> getCountersFromSector(String sector) {
         return List.of();
     }
 
     @Override
     public Optional<CountersRange> getFlightCounters(String flight) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<Pair<CountersRange, String>> getFlightCountersAndSector(String flight) {
         return Optional.empty();
     }
 
