@@ -39,7 +39,7 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
                             .withDescription("No checkins have been registered")
                             .asRuntimeException());
 
-            logger.debug("checkins request failed: no checkins have been registered");
+            logger.debug("(queryService/checkins) request failed: no checkins have been registered");
 
             return;
         }
@@ -52,13 +52,13 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
         if (!sector.isEmpty()) {
             predicate = predicate.and(checkin -> checkin.sector().equals(sector));
 
-            logger.debug("filtering checkins by sector: {}", sector);
+            logger.debug("(queryService/checkins) filtering checkins by sector: {}", sector);
         }
 
         if (!airline.isEmpty()) {
             predicate = predicate.and(checkin -> checkin.airline().equals(airline));
 
-            logger.debug("filtering checkins by airline: {}", airline);
+            logger.debug("(queryService/checkins) filtering checkins by airline: {}", airline);
         }
 
         List<CheckinInfo> checkins =
@@ -79,14 +79,14 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
         responseObserver.onNext(response);
         responseObserver.onCompleted();
 
-        logger.debug("checkins request completed successfully");
+        logger.debug("(queryService/checkins) checkins request completed successfully");
     }
 
     @Override
     public void counters(
             CountersRequest request, StreamObserver<CountersResponse> responseObserver) {
 
-        logger.debug("Received counters request");
+        logger.debug("(queryService/counters) Received counters request");
 
         if (!counterRepository.hasCounters()) {
             responseObserver.onError(
@@ -94,7 +94,7 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
                             .withDescription("No counters have been added to this airport")
                             .asRuntimeException());
 
-            logger.debug("counters request failed: no counters have been added to this airport");
+            logger.debug("(queryService/counters) counters request failed: no counters have been added to this airport");
 
             return;
         }
@@ -106,7 +106,7 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
         if (!sector.isEmpty()) {
             predicate = predicate.and(countersRange -> countersRange.sector().equals(sector));
 
-            logger.debug("filtering counters by sector: {}", sector);
+            logger.debug("(queryService/counters) filtering counters by sector: {}", sector);
         }
 
         List<CountersInfo> counters =
@@ -119,7 +119,7 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
         responseObserver.onNext(response);
         responseObserver.onCompleted();
 
-        logger.debug("counters request completed successfully");
+        logger.debug("(queryService/counters) counters request completed successfully");
     }
 
     private CountersInfo mapCountersRangeToCountersInfo(CountersRange countersRange) {
