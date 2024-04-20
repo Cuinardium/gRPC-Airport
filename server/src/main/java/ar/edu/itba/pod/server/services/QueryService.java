@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
@@ -106,7 +107,20 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
         List<Sector> sectors = new ArrayList<>();
 
         if (!sectorName.isEmpty()) {
-            counterRepository.getSector(sectorName).ifPresent(sectors::add);
+            Optional<Sector> maybeSector = counterRepository.getSector(sectorName);
+
+            if (maybeSector.isEmpty()) {
+                responseObserver.onError(
+                        Status.NOT_FOUND
+                                .withDescription("Sector not found")
+                                .asRuntimeException());
+
+                logger.debug("(queryService/counters) counters request failed: sector not found");
+
+                return;
+            }
+
+            sectors.add(maybeSector.get());
             logger.debug("(queryService/counters) filtering counters by sector: {}", sectorName);
         }
         else{
