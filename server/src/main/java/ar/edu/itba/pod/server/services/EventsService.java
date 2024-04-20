@@ -2,10 +2,13 @@ package ar.edu.itba.pod.server.services;
 
 import ar.edu.itba.pod.grpc.events.*;
 import ar.edu.itba.pod.server.events.EventManager;
+import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
+import ar.edu.itba.pod.server.exceptions.NotFoundException;
 import ar.edu.itba.pod.server.repositories.PassengerRepository;
 
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,26 +39,28 @@ public class EventsService extends EventsServiceGrpc.EventsServiceImplBase {
                             .withDescription("An airline has to be specified")
                             .asRuntimeException());
 
-            logger.debug("(eventsService/unregister) request failed: an airline has to be specified");
+            logger.debug(
+                    "(eventsService/unregister) request failed: an airline has to be specified");
 
             return;
         }
 
-        logger.debug("(eventsService/unregister) checking if airline {} is registered", airline);
+        try {
+            eventManager.unregister(airline);
 
-        if (!eventManager.isRegistered(airline)) {
+            logger.debug("(eventsService/unregister) unregistered airline {}", airline);
+        } catch (NotFoundException e) {
             responseObserver.onError(
                     Status.NOT_FOUND
                             .withDescription("This airline is not registered for events")
                             .asRuntimeException());
 
-            logger.debug("(eventsService/unregister) request failed: airline {} is not registered", airline);
+            logger.debug(
+                    "(eventsService/unregister) request failed: airline {} is not registered",
+                    airline);
 
             return;
         }
-
-        logger.debug("(eventsService/unregister) unregistering airline {}", airline);
-        eventManager.unregister(airline);
 
         responseObserver.onNext(UnregisterResponse.newBuilder().build());
         responseObserver.onCompleted();
@@ -82,7 +87,8 @@ public class EventsService extends EventsServiceGrpc.EventsServiceImplBase {
             return;
         }
 
-        logger.debug("(eventsService/register) checking if airline {} has expected passengers", airline);
+        logger.debug(
+                "(eventsService/register) checking if airline {} has expected passengers", airline);
 
         if (!passengerRepository.hasAirline(airline)) {
             responseObserver.onError(
@@ -98,21 +104,22 @@ public class EventsService extends EventsServiceGrpc.EventsServiceImplBase {
             return;
         }
 
-        logger.debug("(eventsService/register) checking if airline {} is already registered", airline);
+        try {
+            eventManager.register(airline, responseObserver);
 
-        if (eventManager.isRegistered(airline)) {
+            logger.debug("(eventsService/register) registered airline {}", airline);
+        } catch (AlreadyExistsException e) {
             responseObserver.onError(
                     Status.ALREADY_EXISTS
                             .withDescription("This airline has already been registered for events")
                             .asRuntimeException());
 
-            logger.debug("(eventsService/register) request failed: airline {} is already registered", airline);
+            logger.debug(
+                    "(eventsService/register) request failed: airline {} is already registered",
+                    airline);
 
             return;
         }
-
-        logger.debug("(eventsService/register) registering airline {}", airline);
-        eventManager.register(airline, responseObserver);
 
         logger.debug("(eventsService/register) request completed successfully");
     }
