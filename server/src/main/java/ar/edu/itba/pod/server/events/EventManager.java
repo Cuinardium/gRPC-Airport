@@ -10,6 +10,7 @@ public interface EventManager {
     void register(String airline, StreamObserver<RegisterResponse> eventStream) throws AlreadyExistsException;
     void unregister(String airline) throws NotFoundException;
 
-    void notify(String airline, RegisterResponse event);
+    // Returns true if the airline was notified, false otherwise
+    boolean notify(String airline, RegisterResponse event);
 
 }

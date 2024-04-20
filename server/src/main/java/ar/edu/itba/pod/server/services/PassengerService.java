@@ -260,11 +260,14 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
                                         .setSectorName(sector))
                         .build();
 
-        eventManager.notify(passenger.airline(), event);
+        boolean notified = eventManager.notify(passenger.airline(), event);
+
         logger.debug(
-                "(passengerService/passengerCheckin) passenger {} checkin event notified to airline {}",
+                "(passengerService/passengerCheckin) passenger {} checkin event {} notified to airline {}",
                 booking,
-                passenger.airline());
+                notified ? "" : "not",
+                passenger.airline()
+        );
 
         PassengerCheckinResponse response =
                 PassengerCheckinResponse.newBuilder()

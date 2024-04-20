@@ -47,11 +47,9 @@ public class EventManagerImpl implements EventManager {
     }
 
     @Override
-    @Override
-    public void notify(String airline, RegisterResponse event) {
+    public boolean notify(String airline, RegisterResponse event) {
         if (!streams.containsKey(airline)) {
-            // TODO: Error handling
-            return;
+            return false;
         }
 
         StreamObserver<RegisterResponse> airlineStream = streams.get(airline);
@@ -59,10 +57,12 @@ public class EventManagerImpl implements EventManager {
         synchronized (airlineStream) {
             // Alguien ya lo borro
             if (!streams.containsKey(airline)) {
-                return;
+                return false;
             }
 
             airlineStream.onNext(event);
         }
+
+        return true;
     }
 }
