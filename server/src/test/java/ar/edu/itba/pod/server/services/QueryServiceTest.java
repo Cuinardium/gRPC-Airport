@@ -6,7 +6,6 @@ import static org.mockito.Mockito.when;
 
 import ar.edu.itba.pod.grpc.query.*;
 import ar.edu.itba.pod.server.models.Checkin;
-import ar.edu.itba.pod.server.models.CountersRange;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
 
@@ -32,17 +31,14 @@ public class QueryServiceTest {
                     new Checkin("C", 3, "AmericanAirlines", "AA123", "XYZ999"),
                     new Checkin("A", 1, "AirCanada", "AC989", "XYZ123"));
 
-    private final List<CountersRange> counters =
-
     // Mock the repositories using mockito
     private final CheckinRepository checkinRepository = mock(CheckinRepository.class);
     private final CounterRepository counterRepository = mock(CounterRepository.class);
-    private String serverName;
     private QueryServiceGrpc.QueryServiceBlockingStub blockingStub;
 
     @BeforeEach
     public void setUp() throws Exception {
-        this.serverName = InProcessServerBuilder.generateName();
+        String serverName = InProcessServerBuilder.generateName();
 
         QueryService queryService = new QueryService(counterRepository, checkinRepository);
 
@@ -215,7 +211,4 @@ public class QueryServiceTest {
         Assertions.assertEquals(
                 "No counters have been added to this airport", exception.getStatus().getDescription());
     }
-
-    @Test
-
 }
