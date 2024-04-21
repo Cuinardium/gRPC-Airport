@@ -5,10 +5,7 @@ import ar.edu.itba.pod.grpc.events.PassengerArrivedInfo;
 import ar.edu.itba.pod.grpc.events.RegisterResponse;
 import ar.edu.itba.pod.grpc.passenger.*;
 import ar.edu.itba.pod.server.events.EventManager;
-import ar.edu.itba.pod.server.models.Checkin;
-import ar.edu.itba.pod.server.models.CountersRange;
-import ar.edu.itba.pod.server.models.Passenger;
-import ar.edu.itba.pod.server.models.Range;
+import ar.edu.itba.pod.server.models.*;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
 import ar.edu.itba.pod.server.repositories.PassengerRepository;
@@ -89,25 +86,29 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
         logger.debug(
                 "(passengerService/fetchCounter) fetching counters for flight {}",
                 passenger.flight());
-        Optional<CountersRange> possibleCounters =
-                counterRepository.getFlightCounters(passenger.flight());
 
-        if (possibleCounters.isPresent()) {
+        Optional<Pair<CountersRange, String>> possibleCountersAndSector =
+                counterRepository.getFlightCountersAndSector(passenger.flight());
+
+
+        if (possibleCountersAndSector.isPresent()) {
 
             logger.debug(
                     "(passengerService/fetchCounter) flight {} has assigned counters",
                     passenger.flight());
 
-            Range counters = possibleCounters.get().range();
+            Range counters = possibleCountersAndSector.get().first().range();
             int passengersInQueue =
-                    possibleCounters
+                    possibleCountersAndSector
                             .get()
+                            .first()
                             .assignedInfo()
                             .orElseThrow(IllegalStateException::new)
                             .passengersInQueue();
 
             responseBuilder
                     .setStatus(FlightStatus.FLIGHT_STATUS_ASSIGNED)
+                    .setSector(possibleCountersAndSector.get().second())
                     .setCounters(
                             CounterRange.newBuilder()
                                     .setFrom(counters.from())
@@ -279,6 +280,7 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
                                         .setTo(assignedCounters.to())
                                         .build())
                         .setPassengersInQueue(passengersInQueue)
+                        .setSector(sector)
                         .build();
 
         responseObserver.onNext(response);
