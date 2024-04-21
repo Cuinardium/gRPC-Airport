@@ -2,6 +2,7 @@ package ar.edu.itba.pod.client;
 
 import ar.edu.itba.pod.grpc.common.CounterRange;
 import ar.edu.itba.pod.grpc.events.*;
+import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Status;
@@ -41,8 +42,6 @@ public class EventsClient {
                 .usePlaintext()
                 .build();
 
-        EventsServiceGrpc.EventsServiceStub stub = EventsServiceGrpc.newStub(channel);
-
         try {
             action = Optional.ofNullable(System.getProperty("action")).orElseThrow(IllegalArgumentException::new);
         } catch (IllegalArgumentException e) {
@@ -50,23 +49,24 @@ public class EventsClient {
             return;
         }
         try {
-            executeAction(action, stub);
+            executeAction(action, channel);
         } finally {
             channel.shutdown().awaitTermination(10, TimeUnit.SECONDS);
         }
     }
 
-    private static void executeAction(String action, EventsServiceGrpc.EventsServiceStub stub) {
+    private static void executeAction(String action, ManagedChannel channel) {
         String airline;
         switch (action) {
             case "register":
+                EventsServiceGrpc.EventsServiceStub stubRegister = EventsServiceGrpc.newStub(channel);
                 CountDownLatch countDownLatch = new CountDownLatch(1);
                 airline = Optional.ofNullable(System.getProperty("airline")).orElseThrow(IllegalArgumentException::new);
                 RegisterRequest registerRequest = RegisterRequest
                         .newBuilder()
                         .setAirline(airline)
                         .build();
-                StreamObserver<RegisterResponse> responseObserver = new StreamObserver<RegisterResponse>() {
+                StreamObserver<RegisterResponse> responseObserver = new StreamObserver<>() {
                     @Override
                     public void onNext(RegisterResponse registerResponse) {
                         EventType eventType = registerResponse.getEventType();
@@ -154,7 +154,7 @@ public class EventsClient {
                         countDownLatch.countDown();
                     }
                 };
-                stub.register(registerRequest, responseObserver);
+                stubRegister.register(registerRequest, responseObserver);
                 // block
                 try {
                     countDownLatch.wait();
@@ -165,6 +165,14 @@ public class EventsClient {
                 break;
 
             case "unregister":
+                EventsServiceGrpc.EventsServiceBlockingStub stubUnregister = EventsServiceGrpc.newBlockingStub(channel);
+                airline = Optional.ofNullable(System.getProperty("airline")).orElseThrow(IllegalArgumentException::new);
+                UnregisterRequest unregisterRequest = UnregisterRequest
+                        .newBuilder()
+                        .setAirline(airline)
+                        .build();
+                stubUnregister.unregister(unregisterRequest);
+                System.out.println(airline + " unregistered successfully for events");
                 break;
 
             default:

@@ -4,7 +4,7 @@ option java_multiple_files = true;
 option java_package = "ar.edu.itba.pod.grpc.events";
 
 import "common.proto";
-
+import "google/protobuf/empty.proto";
 
 enum EventType {
   EVENT_TYPE_UNSPECIFIED = 0;
@@ -62,7 +62,7 @@ message MovedInAssignationQueueInfo {
 
 service EventsService {
   rpc Register(RegisterRequest) returns (stream RegisterResponse);
-  rpc Unregister(UnregisterRequest) returns (UnregisterResponse);
+  rpc Unregister(UnregisterRequest) returns (google.protobuf.Empty);
 }
 
 // --
@@ -88,5 +88,3 @@ message RegisterResponse {
 message UnregisterRequest {
   string airline = 2;
 }
-
-message UnregisterResponse {}

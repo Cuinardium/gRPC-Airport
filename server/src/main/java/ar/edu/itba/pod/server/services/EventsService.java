@@ -6,6 +6,7 @@ import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
 import ar.edu.itba.pod.server.exceptions.NotFoundException;
 import ar.edu.itba.pod.server.repositories.PassengerRepository;
 
+import com.google.protobuf.Empty;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 
@@ -27,7 +28,7 @@ public class EventsService extends EventsServiceGrpc.EventsServiceImplBase {
 
     @Override
     public void unregister(
-            UnregisterRequest request, StreamObserver<UnregisterResponse> responseObserver) {
+            UnregisterRequest request, StreamObserver<Empty> responseObserver) {
 
         logger.debug("(eventsService/unregister) received request");
 
@@ -62,7 +63,7 @@ public class EventsService extends EventsServiceGrpc.EventsServiceImplBase {
             return;
         }
 
-        responseObserver.onNext(UnregisterResponse.newBuilder().build());
+        responseObserver.onNext(Empty.getDefaultInstance());
         responseObserver.onCompleted();
 
         logger.debug("(eventsService/unregister) request completed successfully");
