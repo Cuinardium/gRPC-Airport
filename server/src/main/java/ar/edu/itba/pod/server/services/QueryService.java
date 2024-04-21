@@ -107,20 +107,9 @@ public class QueryService extends QueryServiceGrpc.QueryServiceImplBase {
         List<Sector> sectors = new ArrayList<>();
 
         if (!sectorName.isEmpty()) {
-            Optional<Sector> maybeSector = counterRepository.getSector(sectorName);
 
-            if (maybeSector.isEmpty()) {
-                responseObserver.onError(
-                        Status.NOT_FOUND
-                                .withDescription("Sector not found")
-                                .asRuntimeException());
+            counterRepository.getSector(sectorName).ifPresent(sectors::add);
 
-                logger.debug("(queryService/counters) counters request failed: sector not found");
-
-                return;
-            }
-
-            sectors.add(maybeSector.get());
             logger.debug("(queryService/counters) filtering counters by sector: {}", sectorName);
         }
         else{
