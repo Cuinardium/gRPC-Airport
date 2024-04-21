@@ -1,5 +1,7 @@
 package ar.edu.itba.pod.server.repositories;
 
+import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
+import ar.edu.itba.pod.server.exceptions.NotFoundException;
 import ar.edu.itba.pod.server.models.CountersRange;
 import ar.edu.itba.pod.server.models.Range;
 import ar.edu.itba.pod.server.models.Sector;
@@ -23,7 +25,7 @@ public interface CounterRepository {
     boolean hasSector(String sector);
     boolean hasPassengerInCounter(Range counterRange, String booking);
 
-    void addSector(String sector);
-    Range addCounters(String sector, int counterCount);
+    void addSector(String sector) throws AlreadyExistsException;
+    Range addCounters(String sector, int counterCount) throws NotFoundException;
     int addPassengerToQueue(Range counterRange, String booking);
 }
