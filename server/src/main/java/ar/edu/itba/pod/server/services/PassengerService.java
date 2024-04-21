@@ -1,6 +1,7 @@
 package ar.edu.itba.pod.server.services;
 
 import ar.edu.itba.pod.grpc.common.CounterRange;
+import ar.edu.itba.pod.grpc.events.EventType;
 import ar.edu.itba.pod.grpc.events.PassengerArrivedInfo;
 import ar.edu.itba.pod.grpc.events.RegisterResponse;
 import ar.edu.itba.pod.grpc.passenger.*;
@@ -248,6 +249,7 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
 
         RegisterResponse event =
                 RegisterResponse.newBuilder()
+                        .setEventType(EventType.EVENT_TYPE_PASSENGER_ARRIVED)
                         .setPassengerArrivedInfo(
                                 PassengerArrivedInfo.newBuilder()
                                         .setPassengersInQueue(passengersInQueue)

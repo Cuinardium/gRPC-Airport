@@ -2,6 +2,10 @@ package ar.edu.itba.pod.server.services;
 
 import static org.mockito.Mockito.*;
 
+import ar.edu.itba.pod.grpc.common.CounterRange;
+import ar.edu.itba.pod.grpc.events.EventType;
+import ar.edu.itba.pod.grpc.events.PassengerArrivedInfo;
+import ar.edu.itba.pod.grpc.events.RegisterResponse;
 import ar.edu.itba.pod.grpc.passenger.*;
 import ar.edu.itba.pod.server.events.EventManager;
 import ar.edu.itba.pod.server.models.*;
@@ -358,6 +362,32 @@ public class PassengerServiceTest {
                 countersRange.assignedInfo().get().passengersInQueue(),
                 response.getPassengersInQueue());
         Assertions.assertEquals(sector, response.getSector());
+
+        verify(eventManager, times(1))
+                .notify(
+                        passenger.airline(),
+                        RegisterResponse.newBuilder()
+                                .setEventType(EventType.EVENT_TYPE_PASSENGER_ARRIVED)
+                                .setPassengerArrivedInfo(
+                                        PassengerArrivedInfo.newBuilder()
+                                                .setBooking("XYZ345")
+                                                .setFlight("AA123")
+                                                .setSectorName("A")
+                                                .setCounters(
+                                                        CounterRange.newBuilder()
+                                                                .setFrom(
+                                                                        countersRange
+                                                                                .range()
+                                                                                .from())
+                                                                .setTo(countersRange.range().to())
+                                                                .build())
+                                                .setPassengersInQueue(
+                                                        countersRange
+                                                                .assignedInfo()
+                                                                .get()
+                                                                .passengersInQueue())
+                                                .build())
+                                .build());
     }
 
     @Test
