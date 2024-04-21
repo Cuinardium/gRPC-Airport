@@ -100,20 +100,20 @@ public class QueryClient {
 
     private static void outputCountersFile(String fileName, List<CountersInfo> countersList) throws IOException {
         BufferedWriter writer = new BufferedWriter(new FileWriter(fileName));
-        writer.append("Sector   Counters    Airline         Flights         People\n");
+        writer.append("Sector  Counters  Airline         Flights             People\n");
         writer.append("###########################################################\n");
         for (CountersInfo countersInfo : countersList) {
-            writer.append(String.format("%s       (%s-%s)     %s          ",
+            writer.append(String.format("%-8s%-10s%-17s",
                     countersInfo.getSectorName(),
-                    countersInfo.getCounters().getFrom(),
-                    countersInfo.getCounters().getTo(),
+                    "(" + countersInfo.getCounters().getFrom() + "-" + countersInfo.getCounters().getTo() + ")",
                     countersInfo.getAirline()));
+            StringBuilder flightStringBuilder = new StringBuilder();
             int i =1;
             for (String flight: countersInfo.getFlightsList()){
-                writer.append(String.format("%s%s", flight, i< countersInfo.getFlightsCount()? "|": ""));
+                flightStringBuilder.append(String.format("%s%s", flight, i< countersInfo.getFlightsCount()? "|": ""));
                 i++;
             }
-            writer.append(String.format("   %s\n", countersInfo.getPassengersInQueue()));
+            writer.append(String.format("%-20s%-6s\n",flightStringBuilder, countersInfo.getPassengersInQueue()));
         }
         writer.close();
 
@@ -121,10 +121,10 @@ public class QueryClient {
 
     private static void outputCheckinsFile(String fileName, List<CheckinInfo> checkinsList) throws IOException {
         BufferedWriter writer = new BufferedWriter(new FileWriter(fileName));
-        writer.append("Sector   Counter     Airline         Flight      Booking\n");
+        writer.append("Sector  Counter   Airline           Flight     Booking\n");
         writer.append("###########################################################\n");
         for (CheckinInfo checkinInfo : checkinsList) {
-            writer.append(String.format("%s     %d      %s          %s      %s\n",
+            writer.append(String.format("%-8s%-10d%-18s%-11s%-7s\n",
                     checkinInfo.getSectorName(),
                     checkinInfo.getCounter(),
                     checkinInfo.getAirline(),
