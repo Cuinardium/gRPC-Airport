@@ -20,7 +20,7 @@ public class EventsClient {
 
     public static void main(String[] args) throws InterruptedException {
         logger.info("tpe1-g4 Events Client Starting ...");
-        logger.info("grpc-com-patterns Events Client Starting ...");
+
         String svrAdd, host, port, action;
 
         try {

@@ -18,7 +18,7 @@ public class QueryClient {
 
     public static void main(String[] args) throws InterruptedException {
         logger.info("tpe1-g4 Query Client Starting ...");
-        logger.info("grpc-com-patterns Query Client Starting ...");
+        
         String svrAdd, host, port, action;
 
         try {

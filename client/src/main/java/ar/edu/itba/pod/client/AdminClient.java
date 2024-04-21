@@ -12,6 +12,7 @@ import java.io.BufferedReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.io.FileReader;
 import java.io.IOException;
@@ -23,7 +24,6 @@ public class AdminClient {
 
     public static void main(String[] args) throws InterruptedException {
         logger.info("tpe1-g4 Admin Client Starting ...");
-        logger.info("grpc-com-patterns Admin Client Starting ...");
 
         String svrAdd, host, port, action;
 

@@ -14,7 +14,7 @@ public class PassengerClient {
 
     public static void main(String[] args) throws InterruptedException {
         logger.info("tpe1-g4 Passenger Client Starting ...");
-        logger.info("grpc-com-patterns Passenger Client Starting ...");
+
         String svrAdd, host, port, action;
 
         try {
