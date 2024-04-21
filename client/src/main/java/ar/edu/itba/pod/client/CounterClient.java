@@ -62,6 +62,7 @@ public class CounterClient {
         String airline;
         List<String> flights;
         StringBuilder flightStringBuilder;
+        int counterFrom;
         switch (action) {
             case "listSectors":
                 ListSectorsResponse listSectorsResponse = stub.listSectors(Empty.getDefaultInstance());
@@ -147,7 +148,7 @@ public class CounterClient {
 
             case "freeCounters":
                 sectorName = Optional.ofNullable(System.getProperty("sector")).orElseThrow(IllegalArgumentException::new);
-                int counterFrom = Integer.parseInt(Optional.ofNullable(System.getProperty("counterFrom")).orElseThrow(IllegalArgumentException::new));
+                counterFrom = Integer.parseInt(Optional.ofNullable(System.getProperty("counterFrom")).orElseThrow(IllegalArgumentException::new));
                 airline = Optional.ofNullable(System.getProperty("airline")).orElseThrow(IllegalArgumentException::new);
                 FreeCountersRequest freeCountersRequest = FreeCountersRequest
                         .newBuilder()
