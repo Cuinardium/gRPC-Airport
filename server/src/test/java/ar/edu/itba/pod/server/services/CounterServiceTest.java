@@ -24,15 +24,18 @@ import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.testing.GrpcCleanupRule;
 
+import org.junit.Before;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+@RunWith(JUnit4.class)
 public class CounterServiceTest {
 
     @Rule public final GrpcCleanupRule grpcCleanup = new GrpcCleanupRule();
@@ -60,7 +63,7 @@ public class CounterServiceTest {
                     new Sector("Z", Collections.emptyList()));
     private CounterServiceGrpc.CounterServiceBlockingStub blockingStub;
 
-    @BeforeEach
+    @Before
     public void setUp() throws Exception {
         String serverName = InProcessServerBuilder.generateName();
 

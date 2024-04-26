@@ -20,11 +20,14 @@ import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.testing.GrpcCleanupRule;
 
+import org.junit.Before;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class AdminServiceTest {
 
     @Rule public final GrpcCleanupRule grpcCleanup = new GrpcCleanupRule();
@@ -38,7 +41,7 @@ public class AdminServiceTest {
 
     private AdminServiceGrpc.AdminServiceBlockingStub blockingStub;
 
-    @BeforeEach
+    @Before
     public void setUp() throws Exception {
         String serverName = InProcessServerBuilder.generateName();
 
