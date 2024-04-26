@@ -9,6 +9,7 @@ import ar.edu.itba.pod.server.repositories.CounterRepository;
 import ar.edu.itba.pod.server.repositories.PassengerRepository;
 import com.google.protobuf.Empty;
 
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 
 import java.util.*;
@@ -60,7 +61,7 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
 
         if (maybeSector.isEmpty()) {
             responseObserver.onError(
-                    io.grpc.Status.NOT_FOUND
+                    Status.NOT_FOUND
                             .withDescription("Sector not found")
                             .asRuntimeException());
             return;
@@ -253,7 +254,17 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
             Empty request, StreamObserver<ListSectorsResponse> responseObserver) {
         ListSectorsResponse.Builder responseBuilder = ListSectorsResponse.newBuilder();
 
-        for (Sector sector : counterRepository.getSectors()) {
+        List<Sector> sectors = counterRepository.getSectors();
+
+        if (sectors.isEmpty()) {
+            responseObserver.onError(
+                    io.grpc.Status.NOT_FOUND
+                            .withDescription("No sectors found")
+                            .asRuntimeException());
+            return;
+        }
+
+        for (Sector sector : sectors) {
             // Mapping from model to proto CounterRange
             List<CounterRange> counterRangesList = sector.countersRangeList().stream().map((countersRange -> {
                 Range range = countersRange.range();
