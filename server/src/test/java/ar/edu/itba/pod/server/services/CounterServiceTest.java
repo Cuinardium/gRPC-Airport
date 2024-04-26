@@ -4,6 +4,8 @@ import static org.mockito.Mockito.*;
 
 import ar.edu.itba.pod.grpc.common.CounterRange;
 import ar.edu.itba.pod.grpc.counter.CounterServiceGrpc;
+import ar.edu.itba.pod.grpc.counter.ListCountersRequest;
+import ar.edu.itba.pod.grpc.counter.ListCountersResponse;
 import ar.edu.itba.pod.grpc.counter.ListSectorsResponse;
 import ar.edu.itba.pod.server.events.EventManager;
 import ar.edu.itba.pod.server.models.AssignedInfo;
@@ -29,6 +31,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 public class CounterServiceTest {
 
@@ -124,11 +127,163 @@ public class CounterServiceTest {
         }
     }
 
+    @Test
+    public void testListCountersNoSectorName() {
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.listCounters(
+                                        ListCountersRequest.newBuilder()
+                                                .setCounterRange(
+                                                        CounterRange.newBuilder()
+                                                                .setFrom(2)
+                                                                .setTo(5)
+                                                                .build())
+                                                .build()));
+
+        Assertions.assertEquals(Status.INVALID_ARGUMENT.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals(
+                "Sector name and counter range (positive integers, from > to) must be provided",
+                exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testListCountersNoCounterRange() {
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.listCounters(
+                                        ListCountersRequest.newBuilder()
+                                                .setSectorName("A")
+                                                .build()));
+
+        Assertions.assertEquals(Status.INVALID_ARGUMENT.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals(
+                "Sector name and counter range (positive integers, from > to) must be provided",
+                exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testListCountersInvalidCounterRange() {
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.listCounters(
+                                        ListCountersRequest.newBuilder()
+                                                .setSectorName("A")
+                                                .setCounterRange(
+                                                        CounterRange.newBuilder()
+                                                                .setFrom(5)
+                                                                .setTo(2)
+                                                                .build())
+                                                .build()));
+
+        Assertions.assertEquals(Status.INVALID_ARGUMENT.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals(
+                "Sector name and counter range (positive integers, from > to) must be provided",
+                exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testListCountersNegativeCounterRange() {
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.listCounters(
+                                        ListCountersRequest.newBuilder()
+                                                .setSectorName("A")
+                                                .setCounterRange(
+                                                        CounterRange.newBuilder()
+                                                                .setFrom(-1)
+                                                                .setTo(2)
+                                                                .build())
+                                                .build()));
+
+        Assertions.assertEquals(Status.INVALID_ARGUMENT.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals(
+                "Sector name and counter range (positive integers, from > to) must be provided",
+                exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testListCountersSectorNotFound() {
+        when(counterRepository.getSector("A")).thenReturn(Optional.empty());
+
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.listCounters(
+                                        ListCountersRequest.newBuilder()
+                                                .setSectorName("A")
+                                                .setCounterRange(
+                                                        CounterRange.newBuilder()
+                                                                .setFrom(2)
+                                                                .setTo(5)
+                                                                .build())
+                                                .build()));
+
+        Assertions.assertEquals(Status.NOT_FOUND.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals("Sector not found", exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testListCounters() {
+        Sector sectorC = sectors.get(1);
+        when(counterRepository.getSector("C")).thenReturn(Optional.of(sectorC));
+
+        ListCountersRequest request =
+                ListCountersRequest.newBuilder()
+                        .setSectorName("C")
+                        .setCounterRange(CounterRange.newBuilder().setFrom(2).setTo(5).build())
+                        .build();
+
+        List<CountersRange> expectedCounters = sectorC.countersRangeList().subList(0, 2);
+
+        ListCountersResponse response = blockingStub.listCounters(request);
+
+        Assertions.assertEquals(expectedCounters.size(), response.getCountersList().size());
+
+        for (int i = 0; i < expectedCounters.size(); i++) {
+            Assertions.assertEquals(
+                    expectedCounters.get(i).range().from(),
+                    response.getCounters(i).getCounterRange().getFrom());
+            Assertions.assertEquals(
+                    expectedCounters.get(i).range().to(),
+                    response.getCounters(i).getCounterRange().getTo());
+
+            if (expectedCounters.get(i).assignedInfo().isPresent()) {
+                AssignedInfo expectedAssignedInfo = expectedCounters.get(i).assignedInfo().get();
                 Assertions.assertEquals(
-                        expectedList.get(j).range().from(), actualList.get(j).getFrom());
+                        expectedAssignedInfo.airline(),
+                        response.getCounters(i).getAssignedAirline());
                 Assertions.assertEquals(
-                        expectedList.get(j).range().to(), actualList.get(j).getTo());
+                        expectedAssignedInfo.flights(),
+                        response.getCounters(i).getAssignedFlightsList());
+                Assertions.assertEquals(
+                        expectedAssignedInfo.passengersInQueue(),
+                        (response.getCounters(i).getPassengersInQueue()));
             }
         }
+    }
+
+    @Test
+    public void testListCountersNoCountersInRange() {
+        Sector sectorC = sectors.get(1);
+        when(counterRepository.getSector("C")).thenReturn(Optional.of(sectorC));
+
+        ListCountersRequest request =
+                ListCountersRequest.newBuilder()
+                        .setSectorName("C")
+                        .setCounterRange(CounterRange.newBuilder().setFrom(10).setTo(20).build())
+                        .build();
+
+        ListCountersResponse response = blockingStub.listCounters(request);
+
+        Assertions.assertTrue(response.getCountersList().isEmpty());
     }
 }
