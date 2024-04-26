@@ -7,6 +7,7 @@ import ar.edu.itba.pod.server.models.*;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
 import ar.edu.itba.pod.server.repositories.PassengerRepository;
+
 import com.google.protobuf.Empty;
 
 import io.grpc.Status;
@@ -265,14 +266,20 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
         }
 
         for (Sector sector : sectors) {
+
+            // Contiguous ranges should be merged
+            List<Range> mergedRanges = Range.mergeRanges(
+                    sector.countersRangeList().stream()
+                            .map(CountersRange::range)
+                            .collect(Collectors.toList()));
+
             // Mapping from model to proto CounterRange
-            List<CounterRange> counterRangesList = sector.countersRangeList().stream().map((countersRange -> {
-                Range range = countersRange.range();
-                return CounterRange.newBuilder()
+            List<CounterRange> counterRangesList = mergedRanges.stream().map((range ->
+                CounterRange.newBuilder()
                         .setFrom(range.from())
                         .setTo(range.to())
-                        .build();
-            })).collect(Collectors.toList());
+                        .build()
+            )).collect(Collectors.toList());
 
             // Create SectorInfo with provided sector
             SectorInfo sectorInfo =

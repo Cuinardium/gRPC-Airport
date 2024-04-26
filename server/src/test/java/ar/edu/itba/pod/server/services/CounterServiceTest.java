@@ -38,17 +38,23 @@ public class CounterServiceTest {
     private final PassengerRepository passengerRepository = mock(PassengerRepository.class);
     private final CheckinRepository checkinRepository = mock(CheckinRepository.class);
     private final EventManager eventManager = mock(EventManager.class);
+
+    private final AssignedInfo sector23AssignedInfo =
+            new AssignedInfo("AmericanAirlines", List.of("AA123", "AA124", "AA125"), 6);
+
+    private final List<CountersRange> sectorDCounters = List.of(new CountersRange(new Range(5, 6)));
     private final List<CountersRange> sectorACounters = List.of(new CountersRange(new Range(1, 1)));
     private final List<CountersRange> sectorCCounters =
-            List.of(new CountersRange(new Range(2, 4)), new CountersRange(new Range(7, 8)));
-    private final List<CountersRange> sectorDCounters = List.of(new CountersRange(new Range(5, 6)));
+            List.of(
+                    new CountersRange(new Range(2, 3), sector23AssignedInfo),
+                    new CountersRange(new Range(4, 4)),
+                    new CountersRange(new Range(7, 8)));
     private final List<Sector> sectors =
             List.of(
                     new Sector("A", sectorACounters),
                     new Sector("C", sectorCCounters),
                     new Sector("D", sectorDCounters),
                     new Sector("Z", Collections.emptyList()));
-
     private CounterServiceGrpc.CounterServiceBlockingStub blockingStub;
 
     @BeforeEach
@@ -99,12 +105,25 @@ public class CounterServiceTest {
             Assertions.assertEquals(
                     sectors.get(i).sectorName(), response.getSectors(i).getSectorName());
 
-            List<CountersRange> expectedList = sectors.get(i).countersRangeList();
+            // Contiguous ranges should be merged
+            // e.g. [(2,3), (4,4), (7,8)] -> [(2,4), (7,8)]
+            List<Range> expectedList =
+                    Range.mergeRanges(
+                            sectors.get(i).countersRangeList().stream()
+                                    .map(CountersRange::range)
+                                    .toList());
+
             List<CounterRange> actualList = response.getSectors(i).getCounterRangesList();
 
             Assertions.assertEquals(expectedList.size(), actualList.size());
 
             for (int j = 0; j < expectedList.size(); j++) {
+                Assertions.assertEquals(expectedList.get(j).from(), actualList.get(j).getFrom());
+                Assertions.assertEquals(expectedList.get(j).to(), actualList.get(j).getTo());
+            }
+        }
+    }
+
                 Assertions.assertEquals(
                         expectedList.get(j).range().from(), actualList.get(j).getFrom());
                 Assertions.assertEquals(
