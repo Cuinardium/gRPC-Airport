@@ -8,8 +8,7 @@ import ar.edu.itba.pod.grpc.events.EventType;
 import ar.edu.itba.pod.grpc.events.PassengerCheckedInInfo;
 import ar.edu.itba.pod.grpc.events.RegisterResponse;
 import ar.edu.itba.pod.server.events.EventManager;
-import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
-import ar.edu.itba.pod.server.exceptions.UnauthorizedException;
+import ar.edu.itba.pod.server.exceptions.*;
 import ar.edu.itba.pod.server.models.*;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
@@ -295,22 +294,7 @@ private final Queue<Assignment> pendingAssignments =
         Assertions.assertTrue(response.getCountersList().isEmpty());
     }
 
-    @Test
-    public void testAssignCountersNoSectorFound() {
-        when(counterRepository.getSector("A")).thenReturn(Optional.empty());
 
-        StatusRuntimeException exception =
-                Assertions.assertThrows(
-                        StatusRuntimeException.class,
-                        () ->
-                                blockingStub.assignCounters(
-                                        AssignCountersRequest.newBuilder()
-                                                .setSectorName("A")
-                                                .build()));
-
-        Assertions.assertEquals(Status.NOT_FOUND.getCode(), exception.getStatus().getCode());
-        Assertions.assertEquals("Sector not found", exception.getStatus().getDescription());
-    }
 
     @Test
     public void testAssignCountersNoAirline() {
@@ -335,7 +319,7 @@ private final Queue<Assignment> pendingAssignments =
 
         Assertions.assertEquals(Status.INVALID_ARGUMENT.getCode(), exception.getStatus().getCode());
         Assertions.assertEquals(
-                "Airline, flights and counter count must be provided. Counter count must be positive",
+                "Sector name, airline, flights and counter count must be provided. Counter count must be positive",
                 exception.getStatus().getDescription());
     }
 
@@ -359,7 +343,7 @@ private final Queue<Assignment> pendingAssignments =
 
         Assertions.assertEquals(Status.INVALID_ARGUMENT.getCode(), exception.getStatus().getCode());
         Assertions.assertEquals(
-                "Airline, flights and counter count must be provided. Counter count must be positive",
+                "Sector name, airline, flights and counter count must be provided. Counter count must be positive",
                 exception.getStatus().getDescription());
     }
 
@@ -387,7 +371,7 @@ private final Queue<Assignment> pendingAssignments =
 
         Assertions.assertEquals(Status.INVALID_ARGUMENT.getCode(), exception.getStatus().getCode());
         Assertions.assertEquals(
-                "Airline, flights and counter count must be provided. Counter count must be positive",
+                "Sector name, airline, flights and counter count must be provided. Counter count must be positive",
                 exception.getStatus().getDescription());
     }
 
@@ -460,6 +444,43 @@ private final Queue<Assignment> pendingAssignments =
                 exception.getStatus().getDescription());
     }
 
+
+    @Test
+    public void testAssignCountersNoSectorFound() throws FlightAlreadyCheckedInException, FlightAlreadyAssignedException, FlightAlreadyQueuedException {
+        when(counterRepository.getSector("A")).thenReturn(Optional.empty());
+
+        when(passengerRepository.getPassengers())
+                .thenReturn(
+                        List.of(
+                                new Passenger("ABC123", "AA123", "AmericanAirlines"),
+                                new Passenger("ABC124", "AA124", "AmericanAirlines"),
+                                new Passenger("ABC125", "AA125", "AmericanAirlines")));
+
+        when(counterRepository.assignCounterAssignment(any(), any()))
+                .thenThrow(new NoSuchElementException("Sector not found"));
+
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.assignCounters(
+                                        AssignCountersRequest.newBuilder()
+                                                .setSectorName("A")
+                                                .setAssignment(
+                                                        CounterAssignment.newBuilder()
+                                                                .setAirline("AmericanAirlines")
+                                                                .setCounterCount(3)
+                                                                .addAllFlights(
+                                                                        List.of(
+                                                                                "AA123", "AA124",
+                                                                                "AA125"))
+                                                                .build())
+                                                .build()));
+
+        Assertions.assertEquals(Status.NOT_FOUND.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals("Sector not found", exception.getStatus().getDescription());
+    }
+
     /// ---------- TODO: TEST rest of assign counters
 
     @Test
@@ -504,6 +525,8 @@ private final Queue<Assignment> pendingAssignments =
         ListPendingAssignmentsResponse response = blockingStub.listPendingAssignments(request);
 
         Assertions.assertEquals(pendingAssignments.size(), response.getAssignmentsCount());
+
+        List<Assignment> pendingAssignments = this.pendingAssignments.stream().toList();
 
         for (int i = 0; i < pendingAssignments.size(); i++) {
             Assertions.assertEquals(
