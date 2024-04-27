@@ -89,8 +89,9 @@ public class CounterRepositoryImpl implements CounterRepository {
     }
 
     @Override
-    public void addAssignmentToQueue(String sector, Assignment assignment) {
+    public int addAssignmentToQueue(String sector, Assignment assignment) {
 
+        return 0;
     }
 
     @Override

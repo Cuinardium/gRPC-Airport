@@ -1,6 +1,5 @@
 package ar.edu.itba.pod.server.repositories;
 
-import ar.edu.itba.pod.grpc.counter.CounterAssignment;
 import ar.edu.itba.pod.server.exceptions.*;
 import ar.edu.itba.pod.server.models.*;
 import ar.edu.itba.pod.server.utils.Pair;
@@ -33,7 +32,7 @@ public interface CounterRepository {
     List<CountersRange> freeCounters(String sector, int counterFrom, String airline) throws NoSuchElementException, HasPendingPassengersException;
 
     // ----- Queues - Assignments -----
-    void addAssignmentToQueue(String sector, Assignment assignment);
+    int addAssignmentToQueue(String sector, Assignment assignment);
     void removeAssignmentFromQueue(String sector, Assignment assignment);
     List<Assignment> getQueuedAssignments(String sector);
 

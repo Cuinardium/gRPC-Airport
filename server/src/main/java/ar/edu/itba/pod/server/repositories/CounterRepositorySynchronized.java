@@ -1,16 +1,17 @@
 package ar.edu.itba.pod.server.repositories;
 
-import ar.edu.itba.pod.grpc.counter.CounterAssignment;
 import ar.edu.itba.pod.server.exceptions.*;
 import ar.edu.itba.pod.server.models.*;
 import ar.edu.itba.pod.server.utils.Pair;
 
 import java.util.*;
 
-public class CounterRepositorySynchronized implements CounterRepository{
-
+public class CounterRepositorySynchronized implements CounterRepository {
 
     private final Map<String, Sector> sectors;
+
+    private final Map<String, Queue<Assignment>> assignmentQueues;
+    private final Set<String> assignedFlights;
 
     private final Map<Range, Queue<String>> passengersInCounters;
 
@@ -19,6 +20,8 @@ public class CounterRepositorySynchronized implements CounterRepository{
     public CounterRepositorySynchronized() {
         this.sectors = new HashMap<>();
         this.passengersInCounters = new HashMap<>();
+        this.assignmentQueues = new HashMap<>();
+        this.assignedFlights = new HashSet<>();
     }
 
     // -------- Sectors --------
@@ -144,49 +147,49 @@ public class CounterRepositorySynchronized implements CounterRepository{
     // -------- Assignments --------
 
     @Override
-    public Pair<Range, Integer> assignCounterAssignment(String sectorName, Assignment counterAssignment) throws FlightAlreadyAssignedException, FlightAlreadyQueuedException, FlightAlreadyCheckedInException {
+    public Pair<Range, Integer> assignCounterAssignment(
+            String sectorName, Assignment counterAssignment)
+            throws FlightAlreadyAssignedException,
+                    FlightAlreadyQueuedException,
+                    FlightAlreadyCheckedInException {
         if (!hasSector(sectorName)) {
             throw new NoSuchElementException("Sector does not exist");
         }
 
         Sector sector = sectors.get(sectorName);
 
-        // Check if there is a flight from the CounterAssignment that is already assigned to an
-        // existing CountersRange
-        
+        // Check if there is a flight from the CounterAssignment
+        // that is already assigned to an existing CountersRange
+        boolean hasFlightAssigned =
+                sector.countersRangeList().stream()
+                        .filter(countersRange -> countersRange.assignedInfo().isPresent())
+                        .anyMatch(
+                                countersRange ->
+                                        counterAssignment.flights().stream()
+                                                .anyMatch(
+                                                        countersRange.assignedInfo().get().flights()
+                                                                ::contains));
 
-
-
-        if (sector.countersRangeList().stream()
-                .filter(countersRange -> countersRange.assignedInfo().isPresent())
-                .anyMatch(
-                        countersRange ->
-                                counterAssignment.getFlightsList().stream()
-                                        .anyMatch(
-                                                countersRange.assignedInfo().get().flights()
-                                                        ::contains))) {
-
-
-
+        if (hasFlightAssigned) {
+            throw new FlightAlreadyAssignedException("Flight already assigned to a counter");
         }
-
-        List<Assignment> queuedAssignments =
-                getQueuedAssignments(sector.sectorName());
 
         // Check if there is a pending assignment that has at least one of the flights as the
         // current assignment
-        if (queuedAssignments.stream()
-                .anyMatch(
-                        assignment ->
-                                counterAssignment.getFlightsList().stream()
-                                        .anyMatch(assignment.flights()::contains))) {
+        boolean hasFlightQueued =
+                assignmentQueues.get(sectorName).stream()
+                        .anyMatch(
+                                assignment ->
+                                        counterAssignment.flights().stream()
+                                                .anyMatch(assignment.flights()::contains));
+        if (hasFlightQueued) {
+            throw new FlightAlreadyQueuedException("Flight already queued");
         }
 
-        // Check if any of the flights has been previously assigned to a counter (which means that
-        // it has already been checked in)
-        if (getPreviouslyAssignedFlights().stream()
-                .anyMatch(counterAssignment.getFlightsList()::contains)) {
-
+        // Check if any of the flights has been previously assigned to a counter
+        // (which means that it has already been checked in)
+        if (counterAssignment.flights().stream().anyMatch(assignedFlights::contains)) {
+            throw new FlightAlreadyCheckedInException("Flight already checked in");
         }
 
         // TODO: Check if this takes order into consideration
@@ -196,31 +199,42 @@ public class CounterRepositorySynchronized implements CounterRepository{
                                 range ->
                                         range.assignedInfo().isEmpty()
                                                 && (range.range().to() - range.range().from())
-                                                >= counterAssignment.getCounterCount())
+                                                        >= counterAssignment.counterCount())
                         .findFirst();
 
+        // If there is an available range, assign the flights to it
         if (maybeAvailableCounterRange.isPresent()) {
             CountersRange availableCounterRange = maybeAvailableCounterRange.get();
-            int from = availableCounterRange.range().from();
-            int to = from + counterAssignment.getCounterCount() - 1;
-            CountersRange newCountersRange =
+
+            int from1 = availableCounterRange.range().from();
+            int to1 = from1 + counterAssignment.counterCount() - 1;
+
+            int from2 = to1 + 1;
+            int to2 = availableCounterRange.range().to();
+
+            CountersRange newAssignedCountersRange =
                     new CountersRange(
-                            new Range(from, to),
+                            new Range(from1, to1),
                             new AssignedInfo(
-                                    counterAssignment.getAirline(),
-                                    counterAssignment.getFlightsList(),
-                                    0));
-            return new Pair<>(newCountersRange.range(), 0);
-        } else {
-            addAssignmentToQueue(
-                    sectorName,
-                    new Assignment(
-                            counterAssignment.getAirline(),
-                            counterAssignment.getFlightsList(),
-                            counterAssignment.getCounterCount()));
-            return new Pair<>(null, queuedAssignments.size());
+                                    counterAssignment.airline(), counterAssignment.flights(), 0));
+
+
+            for (int i = 0; i < sector.countersRangeList().size(); i++) {
+                if (sector.countersRangeList().get(i).range().equals(availableCounterRange.range())) {
+                    sector.countersRangeList().set(i, newAssignedCountersRange);
+
+                    if (from2 <= to2) {
+                        sector.countersRangeList().add(i + 1, new CountersRange(new Range(from2, to2)));
+                    }
+                }
+            }
+
+            return new Pair<>(newAssignedCountersRange.range(), 0);
         }
-        return null;
+
+        int pendingAhead = addAssignmentToQueue(sectorName, counterAssignment);
+
+        return new Pair<>(null, pendingAhead);
     }
 
     @Override
@@ -256,11 +270,12 @@ public class CounterRepositorySynchronized implements CounterRepository{
     // -------- Queues-Assignments --------
 
     @Override
-    public synchronized void addAssignmentToQueue(String sector, Assignment assignment) {}
+    public synchronized int addAssignmentToQueue(String sector, Assignment assignment) {
+        return 0;
+    }
 
     @Override
-    public synchronized void removeAssignmentFromQueue(
-            String sector, Assignment assignment) {}
+    public synchronized void removeAssignmentFromQueue(String sector, Assignment assignment) {}
 
     @Override
     public synchronized List<Assignment> getQueuedAssignments(String sector) {
@@ -279,7 +294,8 @@ public class CounterRepositorySynchronized implements CounterRepository{
     }
 
     @Override
-    public int addPassengerToQueue(Range counterRange, String booking) throws AlreadyExistsException {
+    public int addPassengerToQueue(Range counterRange, String booking)
+            throws AlreadyExistsException {
         if (hasPassengerInCounter(counterRange, booking)) {
             throw new AlreadyExistsException("Passenger already in queue");
         }
@@ -303,9 +319,7 @@ public class CounterRepositorySynchronized implements CounterRepository{
         List<CountersRange> counters = sectors.get(sector).countersRangeList();
 
         Optional<CountersRange> countersStartingFrom =
-                counters.stream()
-                        .filter(range -> range.range().from() == counterFrom)
-                        .findFirst();
+                counters.stream().filter(range -> range.range().from() == counterFrom).findFirst();
 
         if (countersStartingFrom.isEmpty() || countersStartingFrom.get().assignedInfo().isEmpty()) {
             throw new NoSuchElementException("Counter does not exist or not assigned");
