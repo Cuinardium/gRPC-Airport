@@ -28,7 +28,7 @@ public interface CounterRepository {
     Optional<Pair<CountersRange, String>> getFlightCountersAndSector(String flight);
 
     // ----- Assignments -----
-    Pair<Range, Integer> assignCounterAssignment(String sectorName, CounterAssignment counterAssignment) throws FlightAlreadyAssignedException, FlightAlreadyQueuedException, FlightAlreadyCheckedInException;
+    Pair<Range, Integer> assignCounterAssignment(String sectorName, Assignment counterAssignment) throws FlightAlreadyAssignedException, FlightAlreadyQueuedException, FlightAlreadyCheckedInException;
     List<String> getPreviouslyAssignedFlights();
     List<CountersRange> freeCounters(String sector, int counterFrom, String airline) throws NoSuchElementException, HasPendingPassengersException;
 

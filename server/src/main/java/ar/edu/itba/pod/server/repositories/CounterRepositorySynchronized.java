@@ -144,7 +144,7 @@ public class CounterRepositorySynchronized implements CounterRepository{
     // -------- Assignments --------
 
     @Override
-    public Pair<Range, Integer> assignCounterAssignment(String sectorName, CounterAssignment counterAssignment) throws FlightAlreadyAssignedException, FlightAlreadyQueuedException, FlightAlreadyCheckedInException {
+    public Pair<Range, Integer> assignCounterAssignment(String sectorName, Assignment counterAssignment) throws FlightAlreadyAssignedException, FlightAlreadyQueuedException, FlightAlreadyCheckedInException {
         if (!hasSector(sectorName)) {
             throw new NoSuchElementException("Sector does not exist");
         }
@@ -153,6 +153,7 @@ public class CounterRepositorySynchronized implements CounterRepository{
 
         // Check if there is a flight from the CounterAssignment that is already assigned to an
         // existing CountersRange
+        
 
 
 
