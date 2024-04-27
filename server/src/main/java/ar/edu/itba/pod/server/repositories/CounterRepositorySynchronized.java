@@ -105,16 +105,6 @@ public class CounterRepositorySynchronized implements CounterRepository {
     }
 
     @Override
-    public synchronized List<CountersRange> getCounters() {
-        return List.of();
-    }
-
-    @Override
-    public synchronized List<CountersRange> getCountersFromSector(String sector) {
-        return List.of();
-    }
-
-    @Override
     public synchronized Optional<CountersRange> getFlightCounters(String flight) {
         for (Sector sector : sectors.values()) {
             for (CountersRange range : sector.countersRangeList()) {
@@ -230,11 +220,10 @@ public class CounterRepositorySynchronized implements CounterRepository {
             }
 
             return new Pair<>(newAssignedCountersRange.range(), 0);
+        }else{
+            int pendingAhead = addAssignmentToQueue(sectorName, counterAssignment);
+            return new Pair<>(null, pendingAhead);
         }
-
-        int pendingAhead = addAssignmentToQueue(sectorName, counterAssignment);
-
-        return new Pair<>(null, pendingAhead);
     }
 
     @Override
@@ -268,18 +257,19 @@ public class CounterRepositorySynchronized implements CounterRepository {
     }
 
     // -------- Queues-Assignments --------
-
-    @Override
-    public synchronized int addAssignmentToQueue(String sector, Assignment assignment) {
-        return 0;
+    private synchronized int addAssignmentToQueue(String sector, Assignment assignment) {
+        assignmentQueues.putIfAbsent(sector, new LinkedList<>());
+        Queue<Assignment> assignments = assignmentQueues.get(sector);
+        int qtyAssignmentsAhead = assignments.size();
+        assignments.add(assignment);
+        return qtyAssignmentsAhead;
     }
 
-    @Override
-    public synchronized void removeAssignmentFromQueue(String sector, Assignment assignment) {}
+    private synchronized void removeAssignmentFromQueue(String sector, Assignment assignment) {}
 
     @Override
-    public synchronized List<Assignment> getQueuedAssignments(String sector) {
-        return List.of();
+    public synchronized Queue<Assignment> getQueuedAssignments(String sector) {
+        return assignmentQueues.getOrDefault(sector, new LinkedList<>());
     }
 
     // --------- Queues-Passengers --------

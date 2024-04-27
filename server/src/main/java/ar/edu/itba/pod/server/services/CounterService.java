@@ -265,31 +265,16 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
             AssignCountersRequest request,
             StreamObserver<AssignCountersResponse> responseObserver) {
         String sectorName = request.getSectorName();
-
-        if (sectorName.isEmpty()) {
-            responseObserver.onError(
-                    Status.INVALID_ARGUMENT
-                            .withDescription("Sector name must be provided")
-                            .asRuntimeException());
-            return;
-        }
-
-
-        if (!counterRepository.hasSector(sectorName)) {
-            responseObserver.onError(
-                    Status.NOT_FOUND.withDescription("Sector not found").asRuntimeException());
-            return;
-        }
-
         CounterAssignment counterAssignment = request.getAssignment();
 
-        if (counterAssignment.getAirline().isEmpty()
+        if (sectorName.isEmpty()
+                || counterAssignment.getAirline().isEmpty()
                 || counterAssignment.getFlightsList().isEmpty()
                 || counterAssignment.getCounterCount() <= 0) {
             responseObserver.onError(
                     io.grpc.Status.INVALID_ARGUMENT
                             .withDescription(
-                                    "Airline, flights and counter count must be provided. Counter count must be positive")
+                                    "Sector name, airline, flights and counter count must be provided. Counter count must be positive")
                             .asRuntimeException());
             return;
         }
@@ -344,7 +329,14 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
         try{
             Assignment assignment = new Assignment(counterAssignment.getAirline(), counterAssignment.getFlightsList(), counterAssignment.getCounterCount());
             assignedCounterRangeOrQueuedAssignments = counterRepository.assignCounterAssignment(sectorName, assignment);
-        }catch(FlightAlreadyAssignedException e){
+        }catch (NoSuchElementException e) {
+            responseObserver.onError(
+                    io.grpc.Status.NOT_FOUND
+                            .withDescription("Sector not found")
+                            .asRuntimeException());
+            return;
+        }
+        catch(FlightAlreadyAssignedException e){
             responseObserver.onError(
                     io.grpc.Status.INVALID_ARGUMENT
                             .withDescription(

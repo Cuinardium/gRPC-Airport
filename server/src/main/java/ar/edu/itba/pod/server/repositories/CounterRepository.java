@@ -6,13 +6,9 @@ import ar.edu.itba.pod.server.utils.Pair;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.Queue;
 
 public interface CounterRepository {
-    // Lists sorted by range
-    List<CountersRange> getCounters();
-    List<CountersRange> getCountersFromSector(String sector);
-
-
     // ----- Sectors -----
     void addSector(String sector) throws AlreadyExistsException;
     boolean hasSector(String sector);
@@ -32,9 +28,7 @@ public interface CounterRepository {
     List<CountersRange> freeCounters(String sector, int counterFrom, String airline) throws NoSuchElementException, HasPendingPassengersException;
 
     // ----- Queues - Assignments -----
-    int addAssignmentToQueue(String sector, Assignment assignment);
-    void removeAssignmentFromQueue(String sector, Assignment assignment);
-    List<Assignment> getQueuedAssignments(String sector);
+    Queue<Assignment> getQueuedAssignments(String sector);
 
     // ----- Queues - Passengers -----
     boolean hasPassengerInCounter(Range counterRange, String booking);
