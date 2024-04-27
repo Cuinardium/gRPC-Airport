@@ -59,8 +59,8 @@ public class CounterRepositoryImpl implements CounterRepository {
     }
 
     @Override
-    public List<CountersRange> freeCounters(String sector, int counterFrom, String airline) throws NoSuchElementException, HasPendingPassengersException {
-        return List.of();
+    public CountersRange freeCounters(String sector, int counterFrom, String airline) throws NoSuchElementException, HasPendingPassengersException {
+        return null;
     }
 
     @Override

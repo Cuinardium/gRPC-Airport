@@ -30,10 +30,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.LinkedBlockingDeque;
 
 @RunWith(JUnit4.class)
 public class CounterServiceTest {
@@ -62,11 +60,11 @@ public class CounterServiceTest {
                     new Sector("D", sectorDCounters),
                     new Sector("Z", Collections.emptyList()));
 
-    private final List<Assignment> pendingAssignments =
-            List.of(
+private final Queue<Assignment> pendingAssignments =
+            new LinkedList<>(List.of(
                     new Assignment("AirCanada", List.of("AC003"), 2),
                     new Assignment("AmericanAirlines", List.of("AA987", "AA988"), 5),
-                    new Assignment("AirCanada", List.of("AC001"), 2));
+                    new Assignment("AirCanada", List.of("AC001"), 2)));
 
     private CounterServiceGrpc.CounterServiceBlockingStub blockingStub;
 

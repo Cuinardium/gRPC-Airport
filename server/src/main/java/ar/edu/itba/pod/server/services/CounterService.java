@@ -60,7 +60,7 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
             return;
         }
 
-        List<Assignment> pendingAssignments =
+        Queue<Assignment> pendingAssignments =
                 counterRepository.getQueuedAssignments(sectorName);
 
         ListPendingAssignmentsResponse response =
@@ -209,20 +209,14 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
             return;
         }
 
-        if (!counterRepository.hasSector(sectorName)) {
-            responseObserver.onError(
-                    Status.NOT_FOUND.withDescription("Sector not found").asRuntimeException());
-            return;
-        }
-
-        List<CountersRange> counters;
+        CountersRange freedCountersRange;
         try{
-            counters = counterRepository.freeCounters(sectorName, counterFrom, airline);
+            freedCountersRange = counterRepository.freeCounters(sectorName, counterFrom, airline);
         } catch (NoSuchElementException e) {
             responseObserver.onError(
                     io.grpc.Status.NOT_FOUND
                             .withDescription(
-                                    "No counters found for the specified range and airline")
+                                    "Sector does not exist or no counters found for the specified range and airline")
                             .asRuntimeException());
             return;
         }catch (HasPendingPassengersException e) {
@@ -234,25 +228,28 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
             return;
         }
 
-        // Get flights from all counters
-        List<String> flights =
-                counters.stream()
-                        .map(CountersRange::assignedInfo)
-                        .filter(Optional::isPresent)
-                        .map(Optional::get)
-                        .map(AssignedInfo::flights)
-                        .flatMap(Collection::stream)
-                        .toList();
+        Optional<AssignedInfo> maybeAssignedInfo = freedCountersRange.assignedInfo();
+        if (maybeAssignedInfo.isEmpty()) {
+            responseObserver.onError(
+                    Status.NOT_FOUND
+                            .withDescription("No counters found for the specified range and airline")
+                            .asRuntimeException());
+            return;
+        }
+        List<String> flights = maybeAssignedInfo.get().flights();
+
+        int from = freedCountersRange.range().from();
+        int to = freedCountersRange.range().to();
 
         // TODO: Check CounterRange assuming ordered list
         FreeCountersResponse response =
                 FreeCountersResponse.newBuilder()
                         .setCounterRange(
                                 CounterRange.newBuilder()
-                                        .setFrom(counters.get(0).range().from())
-                                        .setTo(counters.get(counters.size() - 1).range().to())
+                                        .setFrom(from)
+                                        .setTo(to)
                                         .build())
-                        .setFreedCounters(counters.size())
+                        .setFreedCounters(to - from + 1)
                         .addAllFlights(flights)
                         .build();
 

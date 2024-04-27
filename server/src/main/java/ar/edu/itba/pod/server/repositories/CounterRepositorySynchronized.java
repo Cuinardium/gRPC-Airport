@@ -140,8 +140,8 @@ public class CounterRepositorySynchronized implements CounterRepository {
     public Pair<Range, Integer> assignCounterAssignment(
             String sectorName, Assignment counterAssignment)
             throws FlightAlreadyAssignedException,
-                    FlightAlreadyQueuedException,
-                    FlightAlreadyCheckedInException {
+            FlightAlreadyQueuedException,
+            FlightAlreadyCheckedInException {
         if (!hasSector(sectorName)) {
             throw new NoSuchElementException("Sector does not exist");
         }
@@ -189,7 +189,7 @@ public class CounterRepositorySynchronized implements CounterRepository {
                                 range ->
                                         range.assignedInfo().isEmpty()
                                                 && (range.range().to() - range.range().from())
-                                                        >= counterAssignment.counterCount())
+                                                >= counterAssignment.counterCount())
                         .findFirst();
 
         // If there is an available range, assign the flights to it
@@ -220,7 +220,7 @@ public class CounterRepositorySynchronized implements CounterRepository {
             }
 
             return new Pair<>(newAssignedCountersRange.range(), 0);
-        }else{
+        } else {
             int pendingAhead = addAssignmentToQueue(sectorName, counterAssignment);
             return new Pair<>(null, pendingAhead);
         }
@@ -232,28 +232,39 @@ public class CounterRepositorySynchronized implements CounterRepository {
     }
 
     @Override
-    public synchronized List<CountersRange> freeCounters(
-            String sector, int counterFrom, String airline) throws NoSuchElementException {
-        //        List<CountersRange> counters = getCountersFromSector(sector);
-        //
-        //        // TODO: check for optimization if list is ordered
-        //        counters =
-        //                counters.stream()
-        //                        .filter(
-        //                                range ->
-        //                                        range.range().from() >= counterFrom
-        //                                                && range.assignedInfo().isPresent()
-        //                                                && range.assignedInfo()
-        //                                                .get()
-        //                                                .airline()
-        //                                                .equals(airline))
-        //                        .toList();
-        //
-        //        if (counters.isEmpty()) {
-        //            throw new NoSuchElementException();
-        //        }
+    public synchronized CountersRange freeCounters(String sector, int counterFrom, String airline) throws NoSuchElementException, HasPendingPassengersException {
+        if(!hasSector(sector)) {
+            throw new NoSuchElementException("Sector does not exist");
+        }
+        List<CountersRange> counters = sectors.get(sector).countersRangeList();
+        
+        CountersRange toFreeCounter = null;
+        for(CountersRange range : counters) {
+            if(range.range().from() >= counterFrom
+                    && range.assignedInfo().isPresent()
+                    && range.assignedInfo().get().airline().equals(airline)
+            ) {
+                toFreeCounter = range;
+                break;
+            }
+        }
 
-        return List.of();
+        if(toFreeCounter == null) {
+            throw new NoSuchElementException("Counter does not exist or not assigned");
+        }
+
+        if(passengersInCounters.containsKey(toFreeCounter.range())) {
+            if(!passengersInCounters.get(toFreeCounter.range()).isEmpty()) {
+                throw new HasPendingPassengersException("Counter has pending passengers");
+            }
+        }
+
+        counters.remove(toFreeCounter);
+        counters.add(new CountersRange(toFreeCounter.range()));
+
+        //TODO: check for pending assignments and, if possible, assign them
+        
+        return toFreeCounter;
     }
 
     // -------- Queues-Assignments --------
@@ -265,7 +276,8 @@ public class CounterRepositorySynchronized implements CounterRepository {
         return qtyAssignmentsAhead;
     }
 
-    private synchronized void removeAssignmentFromQueue(String sector, Assignment assignment) {}
+    private synchronized void removeAssignmentFromQueue(String sector, Assignment assignment) {
+    }
 
     @Override
     public synchronized Queue<Assignment> getQueuedAssignments(String sector) {
