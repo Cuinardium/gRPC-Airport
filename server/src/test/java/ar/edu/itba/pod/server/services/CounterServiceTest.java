@@ -431,4 +431,38 @@ public class CounterServiceTest {
         Assertions.assertEquals(
                 "There are passengers with the flight code but from another airline, for at least one of the requested flights.", exception.getStatus().getDescription());
     }
+
+    /// ---------- TODO: TEST rest of assign counters
+
+
+    @Test
+    public void testListPendingAssignmentsNoSectorName() {
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.listPendingAssignments(
+                                        ListPendingAssignmentsRequest.newBuilder().build()));
+
+        Assertions.assertEquals(Status.INVALID_ARGUMENT.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals("Sector name must be provided", exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testListPendingAssignmentsSectorNotFound() {
+        when(counterRepository.getSector("A")).thenReturn(Optional.empty());
+
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.listPendingAssignments(
+                                        ListPendingAssignmentsRequest.newBuilder()
+                                                .setSectorName("A")
+                                                .build()));
+
+        Assertions.assertEquals(Status.NOT_FOUND.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals("Sector not found", exception.getStatus().getDescription());
+    }
+
 }

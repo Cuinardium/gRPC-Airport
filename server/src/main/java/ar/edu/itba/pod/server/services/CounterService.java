@@ -41,7 +41,7 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
             StreamObserver<ListPendingAssignmentsResponse> responseObserver) {
         String sectorName = request.getSectorName();
 
-        if(sectorName.isEmpty()){
+        if (sectorName.isEmpty()) {
             responseObserver.onError(
                     Status.INVALID_ARGUMENT
                             .withDescription("Sector name must be provided")
@@ -49,33 +49,38 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
             return;
         }
 
-        if(!counterRepository.hasSector(sectorName)){
+        if (!counterRepository.hasSector(sectorName)) {
             responseObserver.onError(
-                    Status.NOT_FOUND
-                            .withDescription("Sector not found")
-                            .asRuntimeException());
+                    Status.NOT_FOUND.withDescription("Sector not found").asRuntimeException());
             return;
         }
 
-        List<CounterAssignment> pendingAssignments = counterRepository.getQueuedAssignments(sectorName);
+        List<PendingAssignment> pendingAssignments =
+                counterRepository.getQueuedAssignments(sectorName);
 
         ListPendingAssignmentsResponse response =
-                ListPendingAssignmentsResponse
-                        .newBuilder()
-                        .addAllAssignments(pendingAssignments)
+                ListPendingAssignmentsResponse.newBuilder()
+                        .addAllAssignments(
+                                pendingAssignments.stream()
+                                        .map(
+                                                assignment ->
+                                                        CounterAssignment.newBuilder()
+                                                                .setAirline(assignment.airline())
+                                                                .addAllFlights(assignment.flights())
+                                                                .setCounterCount(
+                                                                        assignment.counterCount())
+                                                                .build())
+                                        .toList())
                         .build();
 
         responseObserver.onNext(response);
         responseObserver.onCompleted();
-
     }
 
     @Override
     public void checkinCounters(
             CheckinCountersRequest request,
-            StreamObserver<CheckinCountersResponse> responseObserver) {
-
-    }
+            StreamObserver<CheckinCountersResponse> responseObserver) {}
 
     @Override
     public void freeCounters(
@@ -87,32 +92,38 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
         if (sectorName.isEmpty() || counterFrom <= 0 || airline.isEmpty()) {
             responseObserver.onError(
                     io.grpc.Status.INVALID_ARGUMENT
-                            .withDescription("Sector name, counter range (positive integer) and airline must be provided")
+                            .withDescription(
+                                    "Sector name, counter range (positive integer) and airline must be provided")
                             .asRuntimeException());
             return;
         }
 
-        if(!counterRepository.hasSector(sectorName)){
+        if (!counterRepository.hasSector(sectorName)) {
             responseObserver.onError(
-                    Status.NOT_FOUND
-                            .withDescription("Sector not found")
-                            .asRuntimeException());
+                    Status.NOT_FOUND.withDescription("Sector not found").asRuntimeException());
             return;
         }
 
         List<CountersRange> counters = counterRepository.getCountersFromSector(sectorName);
 
-        //TODO: check for optimization if list is ordered
-        counters = counters.stream()
-                .filter(range ->    range.range().from() >= counterFrom &&
-                                    range.assignedInfo().isPresent() &&
-                                    range.assignedInfo().get().airline().equals(airline))
-                .toList();
+        // TODO: check for optimization if list is ordered
+        counters =
+                counters.stream()
+                        .filter(
+                                range ->
+                                        range.range().from() >= counterFrom
+                                                && range.assignedInfo().isPresent()
+                                                && range.assignedInfo()
+                                                        .get()
+                                                        .airline()
+                                                        .equals(airline))
+                        .toList();
 
         if (counters.isEmpty()) {
             responseObserver.onError(
                     io.grpc.Status.NOT_FOUND
-                            .withDescription("No counters found for the specified range and airline")
+                            .withDescription(
+                                    "No counters found for the specified range and airline")
                             .asRuntimeException());
             return;
         }
@@ -122,22 +133,22 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
         int qtyFreed = counterRepository.freeCounters(sectorName, counters);
 
         // Get flights from all counters
-        List<String> flights = counters.stream()
-                .map(CountersRange::assignedInfo)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .map(AssignedInfo::flights)
-                .flatMap(Collection::stream)
-                .toList();
+        List<String> flights =
+                counters.stream()
+                        .map(CountersRange::assignedInfo)
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .map(AssignedInfo::flights)
+                        .flatMap(Collection::stream)
+                        .toList();
 
-        //TODO: Check CounterRange assuming ordered list
-        //TODO: Check if qty of freed counters always matches list size or should be returned by repository
+        // TODO: Check CounterRange assuming ordered list
+        // TODO: Check if qty of freed counters always matches list size or should be returned by
+        // repository
         FreeCountersResponse response =
-                FreeCountersResponse
-                        .newBuilder()
+                FreeCountersResponse.newBuilder()
                         .setCounterRange(
-                                CounterRange
-                                        .newBuilder()
+                                CounterRange.newBuilder()
                                         .setFrom(counters.get(0).range().from())
                                         .setTo(counters.get(counters.size() - 1).range().to())
                                         .build())
@@ -155,7 +166,7 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
             StreamObserver<AssignCountersResponse> responseObserver) {
         String sectorName = request.getSectorName();
 
-        if(sectorName.isEmpty()){
+        if (sectorName.isEmpty()) {
             responseObserver.onError(
                     Status.INVALID_ARGUMENT
                             .withDescription("Sector name must be provided")
@@ -167,105 +178,115 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
 
         if (maybeSector.isEmpty()) {
             responseObserver.onError(
-                    Status.NOT_FOUND
-                            .withDescription("Sector not found")
-                            .asRuntimeException());
+                    Status.NOT_FOUND.withDescription("Sector not found").asRuntimeException());
             return;
         }
 
         Sector sector = maybeSector.get();
         CounterAssignment counterAssignment = request.getAssignment();
 
-        if(
-                counterAssignment.getAirline().isEmpty() ||
-                counterAssignment.getFlightsList().isEmpty() ||
-                counterAssignment.getCounterCount() <= 0
-        ){
+        if (counterAssignment.getAirline().isEmpty()
+                || counterAssignment.getFlightsList().isEmpty()
+                || counterAssignment.getCounterCount() <= 0) {
             responseObserver.onError(
                     io.grpc.Status.INVALID_ARGUMENT
-                            .withDescription("Airline, flights and counter count must be provided. Counter count must be positive")
+                            .withDescription(
+                                    "Airline, flights and counter count must be provided. Counter count must be positive")
                             .asRuntimeException());
             return;
         }
 
-        // Get passengers for flights and map them to the corresponding flight that appear in the CounterAssignment
+        // Get passengers for flights and map them to the corresponding flight that appear in the
+        // CounterAssignment
         Map<String, List<Passenger>> passengersByFlight =
                 passengerRepository.getPassengers().stream()
-                        .filter(passenger -> counterAssignment.getFlightsList().contains(passenger.flight()))
+                        .filter(
+                                passenger ->
+                                        counterAssignment
+                                                .getFlightsList()
+                                                .contains(passenger.flight()))
                         .collect(Collectors.groupingBy(Passenger::flight));
 
         // Check if all flights have passengers
-        boolean allFlightsHavePassengers = counterAssignment.getFlightsList()
-                .stream()
-                .allMatch(passengersByFlight::containsKey);
+        boolean allFlightsHavePassengers =
+                counterAssignment.getFlightsList().stream()
+                        .allMatch(passengersByFlight::containsKey);
 
-        if(!allFlightsHavePassengers){
+        if (!allFlightsHavePassengers) {
             responseObserver.onError(
                     io.grpc.Status.INVALID_ARGUMENT
-                            .withDescription("There are flights in the assignment that have no passengers.")
+                            .withDescription(
+                                    "There are flights in the assignment that have no passengers.")
                             .asRuntimeException());
             return;
         }
 
         // Check if all passengers have the airline of the assignment, if not, return an error
-        boolean allPassengersHaveAirline = passengersByFlight
-                .values()
-                .stream()
-                .allMatch(
-                        passengersList -> passengersList
-                                .stream()
-                                .allMatch(passenger -> passenger.airline().equals(counterAssignment.getAirline()))
-                );
-        if(!allPassengersHaveAirline){
+        boolean allPassengersHaveAirline =
+                passengersByFlight.values().stream()
+                        .allMatch(
+                                passengersList ->
+                                        passengersList.stream()
+                                                .allMatch(
+                                                        passenger ->
+                                                                passenger
+                                                                        .airline()
+                                                                        .equals(
+                                                                                counterAssignment
+                                                                                        .getAirline())));
+        if (!allPassengersHaveAirline) {
             responseObserver.onError(
                     io.grpc.Status.INVALID_ARGUMENT
-                            .withDescription("There are passengers with the flight code but from another airline, for at least one of the requested flights.")
+                            .withDescription(
+                                    "There are passengers with the flight code but from another airline, for at least one of the requested flights.")
                             .asRuntimeException());
             return;
         }
 
-        // Check if there is a flight from the CounterAssignment that is already assigned to an existing CountersRange
-        if(
-                sector.countersRangeList()
-                        .stream()
-                        .filter(countersRange -> countersRange.assignedInfo().isPresent())
-                        .anyMatch(
-                                countersRange -> counterAssignment.getFlightsList().stream().anyMatch(countersRange.assignedInfo().get().flights()::contains)
-                        )
-        ){
+        // Check if there is a flight from the CounterAssignment that is already assigned to an
+        // existing CountersRange
+        if (sector.countersRangeList().stream()
+                .filter(countersRange -> countersRange.assignedInfo().isPresent())
+                .anyMatch(
+                        countersRange ->
+                                counterAssignment.getFlightsList().stream()
+                                        .anyMatch(
+                                                countersRange.assignedInfo().get().flights()
+                                                        ::contains))) {
             responseObserver.onError(
                     io.grpc.Status.INVALID_ARGUMENT
-                            .withDescription("There is at least one flight from the assignment that is already assigned to a counter.")
+                            .withDescription(
+                                    "There is at least one flight from the assignment that is already assigned to a counter.")
                             .asRuntimeException());
             return;
         }
 
-        List<CounterAssignment> queuedAssignments = counterRepository.getQueuedAssignments(sector.sectorName());
+        List<PendingAssignment> queuedAssignments =
+                counterRepository.getQueuedAssignments(sector.sectorName());
 
-        // Check if there is a pending assignment that has at least one of the flights as the current assignment
-        if(
-                queuedAssignments
-                        .stream()
-                        .anyMatch(
-                                assignment -> counterAssignment.getFlightsList().stream().anyMatch(assignment.getFlightsList()::contains)
-                        )
-        ){
+        // Check if there is a pending assignment that has at least one of the flights as the
+        // current assignment
+        if (queuedAssignments.stream()
+                .anyMatch(
+                        assignment ->
+                                counterAssignment.getFlightsList().stream()
+                                        .anyMatch(assignment.flights()::contains))) {
             responseObserver.onError(
                     io.grpc.Status.INVALID_ARGUMENT
-                            .withDescription("There is at least one flight from the assignment that is already in queue to get assigned.")
+                            .withDescription(
+                                    "There is at least one flight from the assignment that is already in queue to get assigned.")
                             .asRuntimeException());
             return;
         }
 
-        //Check if any of the flights has been previously assigned to a counter (which means that it has already been checked in)
-        if(
-                counterRepository.getPreviouslyAssignedFlights()
-                        .stream()
-                        .anyMatch(counterAssignment.getFlightsList()::contains)
-        ){
+        // Check if any of the flights has been previously assigned to a counter (which means that
+        // it has already been checked in)
+        if (counterRepository.getPreviouslyAssignedFlights().stream()
+                .anyMatch(counterAssignment.getFlightsList()::contains)) {
             responseObserver.onError(
                     io.grpc.Status.INVALID_ARGUMENT
-                            .withDescription("There is at least one flight from the assignment that has already been checked in.")
+                            .withDescription(
+                                    "There is at least one flight from the assignment that has already been checked in.")
                             .asRuntimeException());
             return;
         }
@@ -273,31 +294,36 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
         AssignCountersResponse.Builder responseBuilder = AssignCountersResponse.newBuilder();
 
         // TODO: Check if this takes order into consideration
-        Optional<CountersRange> maybeAvailableCounterRange = sector.countersRangeList().stream()
-                .filter(range -> range.assignedInfo().isEmpty() && (range.range().to() - range.range().from()) >= counterAssignment.getCounterCount())
-                .findFirst();
+        Optional<CountersRange> maybeAvailableCounterRange =
+                sector.countersRangeList().stream()
+                        .filter(
+                                range ->
+                                        range.assignedInfo().isEmpty()
+                                                && (range.range().to() - range.range().from())
+                                                        >= counterAssignment.getCounterCount())
+                        .findFirst();
 
         if (maybeAvailableCounterRange.isPresent()) {
             CountersRange availableCounterRange = maybeAvailableCounterRange.get();
             int from = availableCounterRange.range().from();
             int to = from + counterAssignment.getCounterCount() - 1;
-            CountersRange newCountersRange = new CountersRange(
-                    new Range(from, to),
-                    new AssignedInfo(
-                            counterAssignment.getAirline(),
-                            counterAssignment.getFlightsList(),
-                            0));
-            //TODO: Check if this should be done by repository or by service
+            CountersRange newCountersRange =
+                    new CountersRange(
+                            new Range(from, to),
+                            new AssignedInfo(
+                                    counterAssignment.getAirline(),
+                                    counterAssignment.getFlightsList(),
+                                    0));
+            // TODO: Check if this should be done by repository or by service
             counterRepository.assignCounterRange(sector.sectorName(), newCountersRange);
             responseBuilder
                     .setStatus(AssignationStatus.ASSIGNATION_STATUS_SUCCESSFUL)
-                    .setAssignedCounters(
-                            CounterRange.newBuilder()
-                                    .setFrom(from)
-                                    .setTo(to)
-                                    .build());
+                    .setAssignedCounters(CounterRange.newBuilder().setFrom(from).setTo(to).build());
         } else {
-            counterRepository.addAssignmentToQueue(request.getSectorName(), counterAssignment);
+            counterRepository.addAssignmentToQueue(request.getSectorName(), new PendingAssignment(
+                    counterAssignment.getAirline(),
+                    counterAssignment.getFlightsList(),
+                    counterAssignment.getCounterCount()));
             responseBuilder
                     .setStatus(AssignationStatus.ASSIGNATION_STATUS_PENDING)
                     .setPendingAssignations(queuedAssignments.size());
@@ -316,10 +342,13 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
 
         // Check if sector name is empty or counter range is invalid
         // Not checking if to is negative because it already needs to be greater than from
-        if (sectorName.isEmpty() || counterRange.getFrom() <= 0 || counterRange.getFrom() > counterRange.getTo()) {
+        if (sectorName.isEmpty()
+                || counterRange.getFrom() <= 0
+                || counterRange.getFrom() > counterRange.getTo()) {
             responseObserver.onError(
                     io.grpc.Status.INVALID_ARGUMENT
-                            .withDescription("Sector name and counter range (positive integers, from > to) must be provided")
+                            .withDescription(
+                                    "Sector name and counter range (positive integers, from > to) must be provided")
                             .asRuntimeException());
             return;
         }
@@ -339,16 +368,15 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
         ListCountersResponse.Builder responseBuilder = ListCountersResponse.newBuilder();
 
         for (CountersRange countersRange : sector.countersRangeList()) {
-            if (countersRange.range().from() >= counterRange.getFrom() && countersRange.range().to() <= counterRange.getTo()) {
+            if (countersRange.range().from() >= counterRange.getFrom()
+                    && countersRange.range().to() <= counterRange.getTo()) {
                 CounterInfo.Builder counterInfoBuilder = CounterInfo.newBuilder();
 
-                counterInfoBuilder
-                        .setCounterRange(
-                                CounterRange
-                                        .newBuilder()
-                                        .setFrom(countersRange.range().from())
-                                        .setTo(countersRange.range().to())
-                                        .build());
+                counterInfoBuilder.setCounterRange(
+                        CounterRange.newBuilder()
+                                .setFrom(countersRange.range().from())
+                                .setTo(countersRange.range().to())
+                                .build());
 
                 Optional<AssignedInfo> assignedInfo = countersRange.assignedInfo();
                 if (assignedInfo.isPresent()) {
@@ -368,8 +396,7 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
     }
 
     @Override
-    public void listSectors(
-            Empty request, StreamObserver<ListSectorsResponse> responseObserver) {
+    public void listSectors(Empty request, StreamObserver<ListSectorsResponse> responseObserver) {
         ListSectorsResponse.Builder responseBuilder = ListSectorsResponse.newBuilder();
 
         List<Sector> sectors = counterRepository.getSectors();
@@ -385,18 +412,22 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
         for (Sector sector : sectors) {
 
             // Contiguous ranges should be merged
-            List<Range> mergedRanges = Range.mergeRanges(
-                    sector.countersRangeList().stream()
-                            .map(CountersRange::range)
-                            .collect(Collectors.toList()));
+            List<Range> mergedRanges =
+                    Range.mergeRanges(
+                            sector.countersRangeList().stream()
+                                    .map(CountersRange::range)
+                                    .collect(Collectors.toList()));
 
             // Mapping from model to proto CounterRange
-            List<CounterRange> counterRangesList = mergedRanges.stream().map((range ->
-                CounterRange.newBuilder()
-                        .setFrom(range.from())
-                        .setTo(range.to())
-                        .build()
-            )).collect(Collectors.toList());
+            List<CounterRange> counterRangesList =
+                    mergedRanges.stream()
+                            .map(
+                                    (range ->
+                                            CounterRange.newBuilder()
+                                                    .setFrom(range.from())
+                                                    .setTo(range.to())
+                                                    .build()))
+                            .collect(Collectors.toList());
 
             // Create SectorInfo with provided sector
             SectorInfo sectorInfo =

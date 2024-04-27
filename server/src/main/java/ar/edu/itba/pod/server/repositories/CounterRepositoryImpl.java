@@ -2,8 +2,8 @@ package ar.edu.itba.pod.server.repositories;
 
 import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
 import ar.edu.itba.pod.server.exceptions.NotFoundException;
-import ar.edu.itba.pod.grpc.counter.CounterAssignment;
 import ar.edu.itba.pod.server.models.CountersRange;
+import ar.edu.itba.pod.server.models.PendingAssignment;
 import ar.edu.itba.pod.server.models.Range;
 import ar.edu.itba.pod.server.models.Sector;
 import ar.edu.itba.pod.server.utils.Pair;
@@ -33,7 +33,7 @@ public class CounterRepositoryImpl implements CounterRepository {
     }
 
     @Override
-    public void removeAssignmentFromQueue(String sector, CounterAssignment assignment) {
+    public void removeAssignmentFromQueue(String sector, PendingAssignment assignment) {
 
     }
 
@@ -58,7 +58,7 @@ public class CounterRepositoryImpl implements CounterRepository {
     }
 
     @Override
-    public List<CounterAssignment> getQueuedAssignments(String sector) {
+    public List<PendingAssignment> getQueuedAssignments(String sector) {
         return List.of();
     }
 
@@ -91,7 +91,12 @@ public class CounterRepositoryImpl implements CounterRepository {
     }
 
     @Override
-    public void addAssignmentToQueue(String sector, CounterAssignment assignment) {
+    public void addAssignmentToQueue(String sector, PendingAssignment assignment) {
 
+    }
+
+    @Override
+    public int freeCounters(String sector, List<CountersRange> countersToFree) {
+        return 0;
     }
 }
