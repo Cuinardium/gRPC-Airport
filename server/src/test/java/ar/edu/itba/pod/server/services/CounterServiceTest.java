@@ -55,6 +55,12 @@ public class CounterServiceTest {
                     new Sector("C", sectorCCounters),
                     new Sector("D", sectorDCounters),
                     new Sector("Z", Collections.emptyList()));
+
+    private final List<PendingAssignment> pendingAssignments = List.of(
+            new PendingAssignment("AirCanada", List.of("AC003"), 2),
+            new PendingAssignment("AmericanAirlines", List.of("AA987", "AA988"), 5),
+            new PendingAssignment("AirCanada", List.of("AC001"), 2));
+
     private CounterServiceGrpc.CounterServiceBlockingStub blockingStub;
 
     @Before
@@ -463,6 +469,32 @@ public class CounterServiceTest {
 
         Assertions.assertEquals(Status.NOT_FOUND.getCode(), exception.getStatus().getCode());
         Assertions.assertEquals("Sector not found", exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testListPendingAssignments() {
+        when(counterRepository.hasSector("C")).thenReturn(true);
+        when(counterRepository.getQueuedAssignments("C")).thenReturn(pendingAssignments);
+
+        ListPendingAssignmentsRequest request =
+                ListPendingAssignmentsRequest.newBuilder().setSectorName("C").build();
+
+        ListPendingAssignmentsResponse response =
+                blockingStub.listPendingAssignments(request);
+
+        Assertions.assertEquals(pendingAssignments.size(), response.getAssignmentsCount());
+
+        for (int i = 0; i < pendingAssignments.size(); i++) {
+            Assertions.assertEquals(
+                    pendingAssignments.get(i).airline(),
+                    response.getAssignments(i).getAirline());
+            Assertions.assertEquals(
+                    pendingAssignments.get(i).flights(),
+                    response.getAssignments(i).getFlightsList());
+            Assertions.assertEquals(
+                    pendingAssignments.get(i).counterCount(),
+                    response.getAssignments(i).getCounterCount());
+        }
     }
 
 }
