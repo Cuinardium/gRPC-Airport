@@ -2,6 +2,7 @@ package ar.edu.itba.pod.server.repositories;
 
 import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
 import ar.edu.itba.pod.server.exceptions.NotFoundException;
+import ar.edu.itba.pod.server.exceptions.UnauthorizedException;
 import ar.edu.itba.pod.server.models.CountersRange;
 import ar.edu.itba.pod.server.models.PendingAssignment;
 import ar.edu.itba.pod.server.models.Range;
@@ -98,5 +99,10 @@ public class CounterRepositoryImpl implements CounterRepository {
     @Override
     public int freeCounters(String sector, List<CountersRange> countersToFree) {
         return 0;
+    }
+
+    @Override
+    public List<Optional<String>> checkinCounters(String sector, int counterFrom, String airline) throws NotFoundException, UnauthorizedException {
+        return List.of();
     }
 }
