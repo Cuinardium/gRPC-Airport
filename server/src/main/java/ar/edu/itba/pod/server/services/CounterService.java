@@ -41,6 +41,14 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
             StreamObserver<ListPendingAssignmentsResponse> responseObserver) {
         String sectorName = request.getSectorName();
 
+        if(sectorName.isEmpty()){
+            responseObserver.onError(
+                    Status.INVALID_ARGUMENT
+                            .withDescription("Sector name must be provided")
+                            .asRuntimeException());
+            return;
+        }
+
         if(!counterRepository.hasSector(sectorName)){
             responseObserver.onError(
                     Status.NOT_FOUND
@@ -72,14 +80,90 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
     @Override
     public void freeCounters(
             FreeCountersRequest request, StreamObserver<FreeCountersResponse> responseObserver) {
+        String sectorName = request.getSectorName();
+        int counterFrom = request.getCounterFrom();
+        String airline = request.getAirline();
 
+        if (sectorName.isEmpty() || counterFrom <= 0 || airline.isEmpty()) {
+            responseObserver.onError(
+                    io.grpc.Status.INVALID_ARGUMENT
+                            .withDescription("Sector name, counter range (positive integer) and airline must be provided")
+                            .asRuntimeException());
+            return;
+        }
+
+        if(!counterRepository.hasSector(sectorName)){
+            responseObserver.onError(
+                    Status.NOT_FOUND
+                            .withDescription("Sector not found")
+                            .asRuntimeException());
+            return;
+        }
+
+        List<CountersRange> counters = counterRepository.getCountersFromSector(sectorName);
+
+        //TODO: check for optimization if list is ordered
+        counters = counters.stream()
+                .filter(range ->    range.range().from() >= counterFrom &&
+                                    range.assignedInfo().isPresent() &&
+                                    range.assignedInfo().get().airline().equals(airline))
+                .toList();
+
+        if (counters.isEmpty()) {
+            responseObserver.onError(
+                    io.grpc.Status.NOT_FOUND
+                            .withDescription("No counters found for the specified range and airline")
+                            .asRuntimeException());
+            return;
+        }
+
+        // TODO: Check for queued passengers waiting to this check in in the specified counters
+
+        int qtyFreed = counterRepository.freeCounters(sectorName, counters);
+
+        // Get flights from all counters
+        List<String> flights = counters.stream()
+                .map(CountersRange::assignedInfo)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(AssignedInfo::flights)
+                .flatMap(Collection::stream)
+                .toList();
+
+        //TODO: Check CounterRange assuming ordered list
+        //TODO: Check if qty of freed counters always matches list size or should be returned by repository
+        FreeCountersResponse response =
+                FreeCountersResponse
+                        .newBuilder()
+                        .setCounterRange(
+                                CounterRange
+                                        .newBuilder()
+                                        .setFrom(counters.get(0).range().from())
+                                        .setTo(counters.get(counters.size() - 1).range().to())
+                                        .build())
+                        .setFreedCounters(qtyFreed)
+                        .addAllFlights(flights)
+                        .build();
+
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
     }
 
     @Override
     public void assignCounters(
             AssignCountersRequest request,
             StreamObserver<AssignCountersResponse> responseObserver) {
-        Optional<Sector> maybeSector = counterRepository.getSector(request.getSectorName());
+        String sectorName = request.getSectorName();
+
+        if(sectorName.isEmpty()){
+            responseObserver.onError(
+                    Status.INVALID_ARGUMENT
+                            .withDescription("Sector name must be provided")
+                            .asRuntimeException());
+            return;
+        }
+
+        Optional<Sector> maybeSector = counterRepository.getSector(sectorName);
 
         if (maybeSector.isEmpty()) {
             responseObserver.onError(

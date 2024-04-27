@@ -10,6 +10,7 @@ import ar.edu.itba.pod.server.utils.Pair;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 public interface CounterRepository {
     // Lists sorted by range
@@ -34,4 +35,6 @@ public interface CounterRepository {
     Range addCounters(String sector, int counterCount) throws NotFoundException;
     int addPassengerToQueue(Range counterRange, String booking);
     void addAssignmentToQueue(String sector, CounterAssignment assignment);
+
+    int freeCounters(String sector, List<CountersRange> countersToFree);
 }
