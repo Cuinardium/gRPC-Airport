@@ -2,7 +2,12 @@ package ar.edu.itba.pod.server.services;
 
 import ar.edu.itba.pod.grpc.common.CounterRange;
 import ar.edu.itba.pod.grpc.counter.*;
+import ar.edu.itba.pod.grpc.events.EventType;
+import ar.edu.itba.pod.grpc.events.PassengerCheckedInInfo;
+import ar.edu.itba.pod.grpc.events.RegisterResponse;
 import ar.edu.itba.pod.server.events.EventManager;
+import ar.edu.itba.pod.server.exceptions.NotFoundException;
+import ar.edu.itba.pod.server.exceptions.UnauthorizedException;
 import ar.edu.itba.pod.server.models.*;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
@@ -80,7 +85,94 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
     @Override
     public void checkinCounters(
             CheckinCountersRequest request,
-            StreamObserver<CheckinCountersResponse> responseObserver) {}
+            StreamObserver<CheckinCountersResponse> responseObserver) {
+
+        String sectorName = request.getSectorName();
+        int counterFrom = request.getCounterFrom();
+        String airline = request.getAirline();
+
+        if (sectorName.isEmpty() || counterFrom <= 0 || airline.isEmpty()) {
+            responseObserver.onError(
+                    Status.INVALID_ARGUMENT
+                            .withDescription(
+                                    "Sector name, counter range (positive integer) and airline must be provided")
+                            .asRuntimeException());
+            return;
+        }
+
+        if (!counterRepository.hasSector(sectorName)) {
+            responseObserver.onError(
+                    Status.NOT_FOUND.withDescription("Sector not found").asRuntimeException());
+            return;
+        }
+
+        List<Optional<String>> checkedInBookings;
+        try {
+            checkedInBookings = counterRepository.checkinCounters(sectorName, counterFrom, airline);
+        } catch (NotFoundException e) {
+            responseObserver.onError(
+                    Status.NOT_FOUND
+                            .withDescription("No assigned counters found from given number")
+                            .asRuntimeException());
+            return;
+        } catch (UnauthorizedException e) {
+            responseObserver.onError(
+                    Status.PERMISSION_DENIED
+                            .withDescription("Counters are not assigned to the given airline")
+                            .asRuntimeException());
+            return;
+        }
+
+        List<Checkin> checkins =
+                checkedInBookings.stream()
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .map(checkinRepository::getCheckin)
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .toList();
+        int idleCounters = checkedInBookings.size() - checkins.size();
+
+        // Notify event manager
+        List<RegisterResponse> checkInEvents =
+                checkins.stream()
+                        .map(
+                                checkin ->
+                                        RegisterResponse.newBuilder()
+                                                .setEventType(
+                                                        EventType.EVENT_TYPE_PASSENGER_CHECKED_IN)
+                                                .setPassengerCheckedInInfo(
+                                                        PassengerCheckedInInfo.newBuilder()
+                                                                .setBooking(checkin.booking())
+                                                                .setFlight(checkin.flight())
+                                                                .setSectorName(sectorName)
+                                                                .setCounter(checkin.counter())
+                                                                .build())
+                                                .build())
+                        .toList();
+
+        for (RegisterResponse checkInEvent : checkInEvents) {
+            eventManager.notify(airline, checkInEvent);
+        }
+
+        CheckinCountersResponse response =
+                CheckinCountersResponse.newBuilder()
+                        .addAllSuccessfulCheckins(
+                                checkins.stream()
+                                        .map(
+                                                checkin ->
+                                                        CheckInInfo.newBuilder()
+                                                                .setBooking(checkin.booking())
+                                                                .setFlight(checkin.flight())
+                                                                .setCounter(checkin.counter())
+                                                                .build())
+                                        .toList())
+                        .setIdleCounterCount(idleCounters)
+                        .build();
+
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+    }
 
     @Override
     public void freeCounters(
@@ -320,10 +412,12 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
                     .setStatus(AssignationStatus.ASSIGNATION_STATUS_SUCCESSFUL)
                     .setAssignedCounters(CounterRange.newBuilder().setFrom(from).setTo(to).build());
         } else {
-            counterRepository.addAssignmentToQueue(request.getSectorName(), new PendingAssignment(
-                    counterAssignment.getAirline(),
-                    counterAssignment.getFlightsList(),
-                    counterAssignment.getCounterCount()));
+            counterRepository.addAssignmentToQueue(
+                    request.getSectorName(),
+                    new PendingAssignment(
+                            counterAssignment.getAirline(),
+                            counterAssignment.getFlightsList(),
+                            counterAssignment.getCounterCount()));
             responseBuilder
                     .setStatus(AssignationStatus.ASSIGNATION_STATUS_PENDING)
                     .setPendingAssignations(queuedAssignments.size());
