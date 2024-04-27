@@ -171,8 +171,13 @@ public class EventsClient {
                         .newBuilder()
                         .setAirline(airline)
                         .build();
-                stubUnregister.unregister(unregisterRequest);
-                System.out.println(airline + " unregistered successfully for events");
+                try {
+                    stubUnregister.unregister(unregisterRequest);
+                    System.out.println(airline + " unregistered successfully for events");
+                }catch (RuntimeException e){
+                    Status status= Status.fromThrowable(e);
+                    System.out.println("Error: " + status.getDescription());
+                }
                 break;
 
             default:

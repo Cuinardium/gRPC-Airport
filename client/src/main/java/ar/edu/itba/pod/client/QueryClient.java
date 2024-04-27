@@ -3,6 +3,7 @@ package ar.edu.itba.pod.client;
 import ar.edu.itba.pod.grpc.query.*;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,8 +65,13 @@ public class QueryClient {
             case "counters":
 
                 CountersRequest countersRequestEmpty = CountersRequest.newBuilder().build();
-                CountersResponse countersResponseEmpty= stub.counters(countersRequestEmpty);
-                outputCountersFile(outPath, countersResponseEmpty.getCountersList());
+                try {
+                    CountersResponse countersResponseEmpty = stub.counters(countersRequestEmpty);
+                    outputCountersFile(outPath, countersResponseEmpty.getCountersList());
+                }catch (RuntimeException e){
+                    Status status= Status.fromThrowable(e);
+                    System.out.println("Error: " + status.getDescription());
+                }
                 break;
 
             case "queryCounters":
@@ -74,8 +80,13 @@ public class QueryClient {
                         .newBuilder()
                         .setSectorName(sectorCounter)
                         .build();
-                CountersResponse countersResponse= stub.counters(countersRequest);
-                outputCountersFile(outPath, countersResponse.getCountersList());
+                try {
+                    CountersResponse countersResponse = stub.counters(countersRequest);
+                    outputCountersFile(outPath, countersResponse.getCountersList());
+                }catch (RuntimeException e){
+                    Status status= Status.fromThrowable(e);
+                    System.out.println("Error: " + status.getDescription());
+                }
                 break;
 
             case "checkins":
@@ -86,8 +97,13 @@ public class QueryClient {
                         .setSectorName(sectorCheckin.orElse(null))
                         .setAirline(airline.orElse(null))
                         .build();
-                CheckinsResponse checkinsResponse= stub.checkins(checkinsRequest);
-                outputCheckinsFile(outPath, checkinsResponse.getCheckinsList());
+                try {
+                    CheckinsResponse checkinsResponse = stub.checkins(checkinsRequest);
+                    outputCheckinsFile(outPath, checkinsResponse.getCheckinsList());
+                }catch (RuntimeException e){
+                    Status status= Status.fromThrowable(e);
+                    System.out.println("Error: " + status.getDescription());
+                }
                 break;
 
             default:

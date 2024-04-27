@@ -5,6 +5,7 @@ import ar.edu.itba.pod.grpc.counter.*;
 import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,19 +66,24 @@ public class CounterClient {
         int counterFrom;
         switch (action) {
             case "listSectors":
-                ListSectorsResponse listSectorsResponse = stub.listSectors(Empty.getDefaultInstance());
-                List<SectorInfo> sectorsList = listSectorsResponse.getSectorsList();
-                System.out.println("Sectors   Counters");
-                System.out.println("###################");
-                for (SectorInfo sector : sectorsList) {
-                    StringBuilder rangeStringBuilder = new StringBuilder();
-                    if (sector.getCounterRangesList().isEmpty()) {
-                        rangeStringBuilder.append("-");
+                try {
+                    ListSectorsResponse listSectorsResponse = stub.listSectors(Empty.getDefaultInstance());
+                    List<SectorInfo> sectorsList = listSectorsResponse.getSectorsList();
+                    System.out.println("Sectors   Counters");
+                    System.out.println("###################");
+                    for (SectorInfo sector : sectorsList) {
+                        StringBuilder rangeStringBuilder = new StringBuilder();
+                        if (sector.getCounterRangesList().isEmpty()) {
+                            rangeStringBuilder.append("-");
+                        }
+                        for (CounterRange range : sector.getCounterRangesList()) {
+                            rangeStringBuilder.append("(").append(range.getTo()).append("-").append(range.getFrom()).append(")");
+                        }
+                        System.out.printf("%-10s%-10s\n", sector.getSectorName(), rangeStringBuilder);
                     }
-                    for (CounterRange range : sector.getCounterRangesList()) {
-                        rangeStringBuilder.append("(").append(range.getTo()).append("-").append(range.getFrom()).append(")");
-                    }
-                    System.out.printf("%-10s%-10s\n", sector.getSectorName(), rangeStringBuilder);
+                }catch (RuntimeException e){
+                    Status status= Status.fromThrowable(e);
+                    System.out.println("Error: " + status.getDescription());
                 }
                 break;
 
@@ -91,25 +97,30 @@ public class CounterClient {
                         setSectorName(sectorName).
                         setCounterRange(counterRange).
                         build();
-                ListCountersResponse listCountersResponse = stub.listCounters(listCountersRequest);
-                List<CounterInfo> counterInfoList = listCountersResponse.getCountersList();
-                System.out.println("Counters  Airline          Flights             People");
-                System.out.println("##########################################################");
-                for (CounterInfo counterInfo : counterInfoList) {
-                    counterRange = counterInfo.getCounterRange();
-                    String rangeString = "(" + counterRange.getFrom() + "-" + counterRange.getTo() + ")";
-                    int passengers = counterInfo.getPassengersInQueue();
-                    airline = counterInfo.getAssignedAirline();
-                    flightStringBuilder = new StringBuilder();
-                    flights = counterInfo.getAssignedFlightsList().stream().toList();
-                    for (int i = 0; i < flights.size(); ) {
-                        flightStringBuilder.append(flights.get(i));
-                        i++;
-                        if (i < flights.size()) {
-                            flightStringBuilder.append("|");
+                try {
+                    ListCountersResponse listCountersResponse = stub.listCounters(listCountersRequest);
+                    List<CounterInfo> counterInfoList = listCountersResponse.getCountersList();
+                    System.out.println("Counters  Airline          Flights             People");
+                    System.out.println("##########################################################");
+                    for (CounterInfo counterInfo : counterInfoList) {
+                        counterRange = counterInfo.getCounterRange();
+                        String rangeString = "(" + counterRange.getFrom() + "-" + counterRange.getTo() + ")";
+                        int passengers = counterInfo.getPassengersInQueue();
+                        airline = counterInfo.getAssignedAirline();
+                        flightStringBuilder = new StringBuilder();
+                        flights = counterInfo.getAssignedFlightsList().stream().toList();
+                        for (int i = 0; i < flights.size(); ) {
+                            flightStringBuilder.append(flights.get(i));
+                            i++;
+                            if (i < flights.size()) {
+                                flightStringBuilder.append("|");
+                            }
                         }
+                        System.out.printf("%-10s%-18s%-20s%-8s\n", rangeString, airline, flightStringBuilder, passengers == 0 ? "-" : passengers);
                     }
-                    System.out.printf("%-10s%-18s%-20s%-8s\n", rangeString, airline, flightStringBuilder, passengers == 0 ? "-" : passengers);
+                } catch (RuntimeException e) {
+                    Status status = Status.fromThrowable(e);
+                    System.out.println("Error: " + status.getDescription());
                 }
                 break;
 
@@ -129,20 +140,25 @@ public class CounterClient {
                         .setSectorName(sectorName)
                         .setAssignment(counterAssignment)
                         .build();
-                AssignCountersResponse assignCountersResponse = stub.assignCounters(assignCountersRequest);
-                AssignationStatus assignationStatus = assignCountersResponse.getStatus();
-                switch (assignationStatus) {
-                    case ASSIGNATION_STATUS_SUCCESSFUL:
-                        counterRange = assignCountersResponse.getAssignedCounters();
-                        System.out.println(counterCount + " counters (" + counterRange.getFrom() + "-" + counterRange.getTo() + ") in Sector " + sectorName + " are now checking in passengers from " + airline + " " + flights + " flights");
-                        break;
-                    case ASSIGNATION_STATUS_PENDING:
-                        int pending = assignCountersResponse.getPendingAssignations();
-                        System.out.printf(counterCount + " counters in Sector " + sectorName + " is pending with " + pending + " other pendings ahead");
-                        break;
-                    case ASSIGNATION_STATUS_UNSPECIFIED:
-                        // TODO: idk
-                        break;
+                try {
+                    AssignCountersResponse assignCountersResponse = stub.assignCounters(assignCountersRequest);
+                    AssignationStatus assignationStatus = assignCountersResponse.getStatus();
+                    switch (assignationStatus) {
+                        case ASSIGNATION_STATUS_SUCCESSFUL:
+                            counterRange = assignCountersResponse.getAssignedCounters();
+                            System.out.println(counterCount + " counters (" + counterRange.getFrom() + "-" + counterRange.getTo() + ") in Sector " + sectorName + " are now checking in passengers from " + airline + " " + flights + " flights");
+                            break;
+                        case ASSIGNATION_STATUS_PENDING:
+                            int pending = assignCountersResponse.getPendingAssignations();
+                            System.out.printf(counterCount + " counters in Sector " + sectorName + " is pending with " + pending + " other pendings ahead");
+                            break;
+                        case ASSIGNATION_STATUS_UNSPECIFIED:
+                            // TODO: idk
+                            break;
+                    }
+                } catch (RuntimeException e) {
+                    Status status = Status.fromThrowable(e);
+                    System.out.println("Error: " + status.getDescription());
                 }
                 break;
 
@@ -186,14 +202,14 @@ public class CounterClient {
                 List<CheckInInfo> successfulCheckinsList = checkinCountersResponse.getSuccessfulCheckinsList();
                 int idleCounterCount = checkinCountersResponse.getIdleCounterCount();
                 int counter = counterFrom;
-                for(CheckInInfo checkInInfo : successfulCheckinsList) {
+                for (CheckInInfo checkInInfo : successfulCheckinsList) {
                     counter = checkInInfo.getCounter();
                     String booking = checkInInfo.getBooking();
                     String flight = checkInInfo.getFlight();
-                    System.out.println("Check-in successful of "+booking+" for flight "+flight+" at counter "+counter);
+                    System.out.println("Check-in successful of " + booking + " for flight " + flight + " at counter " + counter);
                 }
-                for (int i = 1 ; i <= idleCounterCount ; i++) {
-                    System.out.println("Counter "+counter+i+" is idle");
+                for (int i = 1; i <= idleCounterCount; i++) {
+                    System.out.println("Counter " + counter + i + " is idle");
                 }
                 break;
 

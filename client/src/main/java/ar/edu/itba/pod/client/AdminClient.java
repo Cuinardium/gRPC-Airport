@@ -5,6 +5,7 @@ import ar.edu.itba.pod.grpc.admin.*;
 import ar.edu.itba.pod.grpc.common.CounterRange;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,8 +70,13 @@ public class AdminClient {
                         .newBuilder()
                         .setSectorName(sectorName)
                         .build();
-                stub.addSector(addSectorRequest);
-                System.out.println("Sector " + sectorName + " added successfully");
+                try {
+                    stub.addSector(addSectorRequest);
+                    System.out.println("Sector " + sectorName + " added successfully");
+                }catch (RuntimeException e){
+                    Status status= Status.fromThrowable(e);
+                    System.out.println("Error: " + status.getDescription());
+                }
                 break;
 
             case "addCounters":
@@ -81,9 +87,14 @@ public class AdminClient {
                         .setSectorName(sector)
                         .setCounterCount(counters)
                         .build();
-                CounterRange counterRange = stub.addCounters(addCountersRequest);
-                int range = counterRange.getTo() - counterRange.getFrom();
-                System.out.println(range + " new counters ("+counterRange.getFrom()+"-"+counterRange.getTo()+") in Sector "+sector+" added successfully");
+                try {
+                    CounterRange counterRange = stub.addCounters(addCountersRequest);
+                    int range = counterRange.getTo() - counterRange.getFrom();
+                    System.out.println(range + " new counters (" + counterRange.getFrom() + "-" + counterRange.getTo() + ") in Sector " + sector + " added successfully");
+                }catch (RuntimeException e){
+                    Status status= Status.fromThrowable(e);
+                    System.out.println("Error: " + status.getDescription());
+                }
                 break;
 
             case "manifest":
@@ -95,8 +106,13 @@ public class AdminClient {
                             .setFlight(passenger.flight())
                             .setAirline(passenger.airline())
                             .build();
-                    stub.addPassenger(addPassengerRequest);
-                    System.out.println("Booking "+passenger.booking()+" for "+passenger.airline()+" "+passenger.flight()+" added successfully");
+                    try {
+                        stub.addPassenger(addPassengerRequest);
+                        System.out.println("Booking " + passenger.booking() + " for " + passenger.airline() + " " + passenger.flight() + " added successfully");
+                    }catch (RuntimeException e){
+                        Status status= Status.fromThrowable(e);
+                        System.out.println("Error: " + status.getDescription());
+                    }
                 }
                 break;
             default:
