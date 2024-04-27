@@ -33,9 +33,9 @@ public interface CounterRepository {
     List<CountersRange> freeCounters(String sector, int counterFrom, String airline) throws NoSuchElementException, HasPendingPassengersException;
 
     // ----- Queues - Assignments -----
-    void addAssignmentToQueue(String sector, PendingAssignment assignment);
-    void removeAssignmentFromQueue(String sector, PendingAssignment assignment);
-    List<PendingAssignment> getQueuedAssignments(String sector);
+    void addAssignmentToQueue(String sector, Assignment assignment);
+    void removeAssignmentFromQueue(String sector, Assignment assignment);
+    List<Assignment> getQueuedAssignments(String sector);
 
     // ----- Queues - Passengers -----
     boolean hasPassengerInCounter(Range counterRange, String booking);

@@ -26,7 +26,7 @@ public class CounterRepositoryImpl implements CounterRepository {
     }
 
     @Override
-    public void removeAssignmentFromQueue(String sector, PendingAssignment assignment) {
+    public void removeAssignmentFromQueue(String sector, Assignment assignment) {
 
     }
 
@@ -56,7 +56,7 @@ public class CounterRepositoryImpl implements CounterRepository {
     }
 
     @Override
-    public List<PendingAssignment> getQueuedAssignments(String sector) {
+    public List<Assignment> getQueuedAssignments(String sector) {
         return List.of();
     }
 
@@ -89,7 +89,7 @@ public class CounterRepositoryImpl implements CounterRepository {
     }
 
     @Override
-    public void addAssignmentToQueue(String sector, PendingAssignment assignment) {
+    public void addAssignmentToQueue(String sector, Assignment assignment) {
 
     }
 

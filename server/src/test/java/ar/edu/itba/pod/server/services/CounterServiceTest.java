@@ -62,11 +62,11 @@ public class CounterServiceTest {
                     new Sector("D", sectorDCounters),
                     new Sector("Z", Collections.emptyList()));
 
-    private final List<PendingAssignment> pendingAssignments =
+    private final List<Assignment> pendingAssignments =
             List.of(
-                    new PendingAssignment("AirCanada", List.of("AC003"), 2),
-                    new PendingAssignment("AmericanAirlines", List.of("AA987", "AA988"), 5),
-                    new PendingAssignment("AirCanada", List.of("AC001"), 2));
+                    new Assignment("AirCanada", List.of("AC003"), 2),
+                    new Assignment("AmericanAirlines", List.of("AA987", "AA988"), 5),
+                    new Assignment("AirCanada", List.of("AC001"), 2));
 
     private CounterServiceGrpc.CounterServiceBlockingStub blockingStub;
 

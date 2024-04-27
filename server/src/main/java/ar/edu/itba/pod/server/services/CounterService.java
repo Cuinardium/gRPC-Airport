@@ -60,7 +60,7 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
             return;
         }
 
-        List<PendingAssignment> pendingAssignments =
+        List<Assignment> pendingAssignments =
                 counterRepository.getQueuedAssignments(sectorName);
 
         ListPendingAssignmentsResponse response =
