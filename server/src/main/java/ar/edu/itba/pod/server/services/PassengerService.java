@@ -6,12 +6,13 @@ import ar.edu.itba.pod.grpc.events.PassengerArrivedInfo;
 import ar.edu.itba.pod.grpc.events.RegisterResponse;
 import ar.edu.itba.pod.grpc.passenger.*;
 import ar.edu.itba.pod.server.events.EventManager;
+import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
 import ar.edu.itba.pod.server.models.*;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
 import ar.edu.itba.pod.server.repositories.PassengerRepository;
-
 import ar.edu.itba.pod.server.utils.Pair;
+
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 
@@ -90,7 +91,6 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
 
         Optional<Pair<CountersRange, String>> possibleCountersAndSector =
                 counterRepository.getFlightCountersAndSector(passenger.flight());
-
 
         if (possibleCountersAndSector.isPresent()) {
 
@@ -216,18 +216,6 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
 
         Range assignedCounters = possibleAssignedCounters.get().range();
 
-        if (counterRepository.hasPassengerInCounter(assignedCounters, booking)) {
-            responseObserver.onError(
-                    Status.ALREADY_EXISTS
-                            .withDescription("Passenger is already waiting in counter queue")
-                            .asRuntimeException());
-
-            logger.debug(
-                    "(passengerService/passengerCheckin) passenger checkin request failed: passenger is already waiting in counter queue");
-
-            return;
-        }
-
         if (checkinRepository.hasCheckin(booking)) {
             responseObserver.onError(
                     Status.ALREADY_EXISTS
@@ -240,7 +228,21 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
             return;
         }
 
-        int passengersInQueue = counterRepository.addPassengerToQueue(assignedCounters, booking);
+        int passengersInQueue;
+
+        try {
+            passengersInQueue = counterRepository.addPassengerToQueue(assignedCounters, booking);
+        } catch (AlreadyExistsException exception) {
+            responseObserver.onError(
+                    Status.ALREADY_EXISTS
+                            .withDescription("Passenger is already waiting in counter queue")
+                            .asRuntimeException());
+
+            logger.debug(
+                    "(passengerService/passengerCheckin) passenger checkin request failed: passenger is already waiting in counter queue");
+
+            return;
+        }
 
         logger.debug(
                 "(passengerService/passengerCheckin) passenger {} added to counter queue {}",
@@ -269,8 +271,7 @@ public class PassengerService extends PassengerServiceGrpc.PassengerServiceImplB
                 "(passengerService/passengerCheckin) passenger {} checkin event {} notified to airline {}",
                 booking,
                 notified ? "" : "not",
-                passenger.airline()
-        );
+                passenger.airline());
 
         PassengerCheckinResponse response =
                 PassengerCheckinResponse.newBuilder()

@@ -33,7 +33,7 @@ public interface CounterRepository {
 
     void addSector(String sector) throws AlreadyExistsException;
     Range addCounters(String sector, int counterCount) throws NotFoundException;
-    int addPassengerToQueue(Range counterRange, String booking);
+    int addPassengerToQueue(Range counterRange, String booking) throws AlreadyExistsException;
     void addAssignmentToQueue(String sector, CounterAssignment assignment);
 
     int freeCounters(String sector, List<CountersRange> countersToFree);

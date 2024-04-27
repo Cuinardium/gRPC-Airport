@@ -8,6 +8,7 @@ import ar.edu.itba.pod.grpc.events.PassengerArrivedInfo;
 import ar.edu.itba.pod.grpc.events.RegisterResponse;
 import ar.edu.itba.pod.grpc.passenger.*;
 import ar.edu.itba.pod.server.events.EventManager;
+import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
 import ar.edu.itba.pod.server.models.*;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
@@ -286,12 +287,12 @@ public class PassengerServiceTest {
     }
 
     @Test
-    public void testPassengerCheckinAlreadyInQueue() {
+    public void testPassengerCheckinAlreadyInQueue() throws AlreadyExistsException {
         when(passengerRepository.getPassenger("XYZ345")).thenReturn(Optional.of(passenger));
         when(counterRepository.hasSector("A")).thenReturn(true);
         when(counterRepository.getFlightCounters("AA123")).thenReturn(Optional.of(countersRange));
-        when(counterRepository.hasPassengerInCounter(countersRange.range(), "XYZ345"))
-                .thenReturn(true);
+        when(counterRepository.addPassengerToQueue(countersRange.range(), "XYZ345"))
+                .thenThrow(new AlreadyExistsException("Passenger is already waiting in counter queue"));
 
         StatusRuntimeException exception =
                 Assertions.assertThrows(
@@ -336,7 +337,7 @@ public class PassengerServiceTest {
     }
 
     @Test
-    public void testPassengerCheckinSuccess() {
+    public void testPassengerCheckinSuccess() throws AlreadyExistsException {
         when(passengerRepository.getPassenger("XYZ345")).thenReturn(Optional.of(passenger));
         when(counterRepository.hasSector("A")).thenReturn(true);
         when(counterRepository.getFlightCounters("AA123")).thenReturn(Optional.of(countersRange));
