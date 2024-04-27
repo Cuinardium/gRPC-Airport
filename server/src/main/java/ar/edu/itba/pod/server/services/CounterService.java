@@ -6,6 +6,7 @@ import ar.edu.itba.pod.grpc.events.EventType;
 import ar.edu.itba.pod.grpc.events.PassengerCheckedInInfo;
 import ar.edu.itba.pod.grpc.events.RegisterResponse;
 import ar.edu.itba.pod.server.events.EventManager;
+import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
 import ar.edu.itba.pod.server.exceptions.NotFoundException;
 import ar.edu.itba.pod.server.exceptions.UnauthorizedException;
 import ar.edu.itba.pod.server.models.*;
@@ -123,15 +124,35 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
             return;
         }
 
-        List<Checkin> checkins =
-                checkedInBookings.stream()
-                        .filter(Optional::isPresent)
-                        .map(Optional::get)
-                        .map(checkinRepository::getCheckin)
-                        .filter(Optional::isPresent)
-                        .map(Optional::get)
-                        .toList();
-        int idleCounters = checkedInBookings.size() - checkins.size();
+
+
+        List<Checkin> checkins = new ArrayList<>();
+
+        int idleCounters = 0;
+        for (int i = 0; i < checkedInBookings.size(); i++) {
+            Optional<String> maybeBooking = checkedInBookings.get(i);
+            if (maybeBooking.isEmpty()) {
+                idleCounters++;
+                continue;
+            }
+
+            String booking = maybeBooking.get();
+
+            // Get flight from booking
+            Passenger passenger = passengerRepository.getPassenger(booking).orElseThrow(IllegalStateException::new);
+            String flight = passenger.flight();
+
+            checkins.add(new Checkin(sectorName, counterFrom + i, airline, flight, booking));
+        }
+
+        // Add checkins to checkin repository
+        for (Checkin checkin : checkins) {
+            try{
+                checkinRepository.addCheckin(checkin);
+            } catch (AlreadyExistsException e) {
+                throw new IllegalStateException("Checkin already exists");
+            }
+        }
 
         // Notify event manager
         List<RegisterResponse> checkInEvents =
