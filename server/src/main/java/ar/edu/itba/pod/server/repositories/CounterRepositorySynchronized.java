@@ -205,36 +205,55 @@ public class CounterRepositorySynchronized implements CounterRepository{
     }
 
     @Override
-    public int addPassengerToQueue(Range counterRange, String booking) {
-        return 0;
+    public int addPassengerToQueue(Range counterRange, String booking) throws AlreadyExistsException {
+        if (hasPassengerInCounter(counterRange, booking)) {
+            throw new AlreadyExistsException("Passenger already in queue");
+        }
+
+        Queue<String> passengers = passengersInCounters.get(counterRange);
+
+        passengers.add(booking);
+
+        return passengers.size();
     }
 
     @Override
     public synchronized List<Optional<String>> checkinCounters(
             String sector, int counterFrom, String airline)
             throws NoSuchElementException, UnauthorizedException {
-//
-//        if (!hasSector(sector)) {
-//            throw new NoSuchElementException("Sector does not exist");
-//        }
-//
-//        List<CountersRange> counters = sectors.get(sector).countersRangeList();
-//
-//        Optional<CountersRange> countersStartingFrom =
-//                counters.stream()
-//                        .filter(range -> range.range().from() == counterFrom)
-//                        .findFirst();
-//
-//        if (countersStartingFrom.isEmpty()) {
-//            throw new NoSuchElementException("Counter does not exist");
-//        }
-//
-//        if (countersStartingFrom.get().assignedInfo().isEmpty()
-//                || !countersStartingFrom.get().assignedInfo().get().airline().equals(airline)) {
-//            throw new UnauthorizedException("Unauthorized");
-//        }
-//
-        return List.of();
 
+        if (!hasSector(sector)) {
+            throw new NoSuchElementException("Sector does not exist");
+        }
+
+        List<CountersRange> counters = sectors.get(sector).countersRangeList();
+
+        Optional<CountersRange> countersStartingFrom =
+                counters.stream()
+                        .filter(range -> range.range().from() == counterFrom)
+                        .findFirst();
+
+        if (countersStartingFrom.isEmpty() || countersStartingFrom.get().assignedInfo().isEmpty()) {
+            throw new NoSuchElementException("Counter does not exist or not assigned");
+        }
+
+        if (!countersStartingFrom.get().assignedInfo().get().airline().equals(airline)) {
+            throw new UnauthorizedException("Counter is not assigned to the airline");
+        }
+
+        CountersRange counter = countersStartingFrom.get();
+        Queue<String> passengers = passengersInCounters.get(counter.range());
+
+        List<Optional<String>> result = new ArrayList<>();
+
+        for (int i = 0; i < counter.range().to() - counter.range().from(); i++) {
+            if (passengers.isEmpty()) {
+                result.add(Optional.empty());
+            } else {
+                result.add(Optional.of(passengers.poll()));
+            }
+        }
+
+        return result;
     }
 }
