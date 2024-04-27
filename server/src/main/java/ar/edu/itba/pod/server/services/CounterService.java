@@ -7,6 +7,7 @@ import ar.edu.itba.pod.grpc.events.PassengerCheckedInInfo;
 import ar.edu.itba.pod.grpc.events.RegisterResponse;
 import ar.edu.itba.pod.server.events.EventManager;
 import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
+import ar.edu.itba.pod.server.exceptions.HasPendingPassengersException;
 import ar.edu.itba.pod.server.exceptions.UnauthorizedException;
 import ar.edu.itba.pod.server.models.*;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
@@ -91,7 +92,6 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
         int counterFrom = request.getCounterFrom();
         String airline = request.getAirline();
 
-        Status.NOT_FOUND.asRuntimeException();
 
         if (sectorName.isEmpty() || counterFrom <= 0 || airline.isEmpty()) {
             responseObserver.onError(
@@ -124,8 +124,6 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
                             .asRuntimeException());
             return;
         }
-
-
 
         List<Checkin> checkins = new ArrayList<>();
 
@@ -218,33 +216,24 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
             return;
         }
 
-        List<CountersRange> counters = counterRepository.getCountersFromSector(sectorName);
-
-        // TODO: check for optimization if list is ordered
-        counters =
-                counters.stream()
-                        .filter(
-                                range ->
-                                        range.range().from() >= counterFrom
-                                                && range.assignedInfo().isPresent()
-                                                && range.assignedInfo()
-                                                        .get()
-                                                        .airline()
-                                                        .equals(airline))
-                        .toList();
-
-        if (counters.isEmpty()) {
+        List<CountersRange> counters;
+        try{
+            counters = counterRepository.freeCounters(sectorName, counterFrom, airline);
+        } catch (NoSuchElementException e) {
             responseObserver.onError(
                     io.grpc.Status.NOT_FOUND
                             .withDescription(
                                     "No counters found for the specified range and airline")
                             .asRuntimeException());
             return;
+        }catch (HasPendingPassengersException e) {
+            responseObserver.onError(
+                    Status.FAILED_PRECONDITION
+                            .withDescription(
+                                    "There are passengers waiting to check in in the specified counters")
+                            .asRuntimeException());
+            return;
         }
-
-        // TODO: Check for queued passengers waiting to this check in in the specified counters
-
-        int qtyFreed = counterRepository.freeCounters(sectorName, counters);
 
         // Get flights from all counters
         List<String> flights =
@@ -257,8 +246,6 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
                         .toList();
 
         // TODO: Check CounterRange assuming ordered list
-        // TODO: Check if qty of freed counters always matches list size or should be returned by
-        // repository
         FreeCountersResponse response =
                 FreeCountersResponse.newBuilder()
                         .setCounterRange(
@@ -266,7 +253,7 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
                                         .setFrom(counters.get(0).range().from())
                                         .setTo(counters.get(counters.size() - 1).range().to())
                                         .build())
-                        .setFreedCounters(qtyFreed)
+                        .setFreedCounters(counters.size())
                         .addAllFlights(flights)
                         .build();
 

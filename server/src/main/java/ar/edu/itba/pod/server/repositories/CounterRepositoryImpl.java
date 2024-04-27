@@ -97,8 +97,27 @@ public class CounterRepositoryImpl implements CounterRepository {
     }
 
     @Override
-    public int freeCounters(String sector, List<CountersRange> countersToFree) {
-        return 0;
+    public List<CountersRange> freeCounters(String sector, int counterFrom, String airline) throws NoSuchElementException {
+//        List<CountersRange> counters = getCountersFromSector(sector);
+//
+//        // TODO: check for optimization if list is ordered
+//        counters =
+//                counters.stream()
+//                        .filter(
+//                                range ->
+//                                        range.range().from() >= counterFrom
+//                                                && range.assignedInfo().isPresent()
+//                                                && range.assignedInfo()
+//                                                .get()
+//                                                .airline()
+//                                                .equals(airline))
+//                        .toList();
+//
+//        if (counters.isEmpty()) {
+//            throw new NoSuchElementException();
+//        }
+
+        return List.of();
     }
 
     @Override
