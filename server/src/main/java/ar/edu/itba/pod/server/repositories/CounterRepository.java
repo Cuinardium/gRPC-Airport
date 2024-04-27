@@ -1,8 +1,7 @@
 package ar.edu.itba.pod.server.repositories;
 
-import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
-import ar.edu.itba.pod.server.exceptions.HasPendingPassengersException;
-import ar.edu.itba.pod.server.exceptions.UnauthorizedException;
+import ar.edu.itba.pod.grpc.counter.CounterAssignment;
+import ar.edu.itba.pod.server.exceptions.*;
 import ar.edu.itba.pod.server.models.*;
 import ar.edu.itba.pod.server.utils.Pair;
 import java.util.List;
@@ -22,13 +21,14 @@ public interface CounterRepository {
     Optional<Sector> getSector(String sectorName);
 
     // ----- Counters -----
+
     Range addCounters(String sector, int counterCount) throws NoSuchElementException;
     boolean hasCounters();
     Optional<CountersRange> getFlightCounters(String flight);
     Optional<Pair<CountersRange, String>> getFlightCountersAndSector(String flight);
 
     // ----- Assignments -----
-    void assignCounterRange(String sector, CountersRange counterRange);
+    Pair<Range, Integer> assignCounterAssignment(String sectorName, CounterAssignment counterAssignment) throws FlightAlreadyAssignedException, FlightAlreadyQueuedException, FlightAlreadyCheckedInException;
     List<String> getPreviouslyAssignedFlights();
     List<CountersRange> freeCounters(String sector, int counterFrom, String airline) throws NoSuchElementException, HasPendingPassengersException;
 

@@ -1,11 +1,8 @@
 package ar.edu.itba.pod.server.repositories;
 
-import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
-import ar.edu.itba.pod.server.exceptions.UnauthorizedException;
-import ar.edu.itba.pod.server.models.CountersRange;
-import ar.edu.itba.pod.server.models.PendingAssignment;
-import ar.edu.itba.pod.server.models.Range;
-import ar.edu.itba.pod.server.models.Sector;
+import ar.edu.itba.pod.grpc.counter.CounterAssignment;
+import ar.edu.itba.pod.server.exceptions.*;
+import ar.edu.itba.pod.server.models.*;
 import ar.edu.itba.pod.server.utils.Pair;
 
 import java.util.List;
@@ -26,11 +23,6 @@ public class CounterRepositoryImpl implements CounterRepository {
     @Override
     public List<String> getPreviouslyAssignedFlights() {
         return List.of();
-    }
-
-    @Override
-    public void assignCounterRange(String sector, CountersRange counterRange) {
-
     }
 
     @Override
@@ -56,6 +48,11 @@ public class CounterRepositoryImpl implements CounterRepository {
     @Override
     public Optional<Pair<CountersRange, String>> getFlightCountersAndSector(String flight) {
         return Optional.empty();
+    }
+
+    @Override
+    public Pair<Range, Integer> assignCounterAssignment(String sectorName, CounterAssignment counterAssignment) throws FlightAlreadyAssignedException, FlightAlreadyQueuedException, FlightAlreadyCheckedInException {
+        return null;
     }
 
     @Override

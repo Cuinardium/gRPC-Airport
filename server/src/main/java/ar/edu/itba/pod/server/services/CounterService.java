@@ -6,14 +6,13 @@ import ar.edu.itba.pod.grpc.events.EventType;
 import ar.edu.itba.pod.grpc.events.PassengerCheckedInInfo;
 import ar.edu.itba.pod.grpc.events.RegisterResponse;
 import ar.edu.itba.pod.server.events.EventManager;
-import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
-import ar.edu.itba.pod.server.exceptions.HasPendingPassengersException;
-import ar.edu.itba.pod.server.exceptions.UnauthorizedException;
+import ar.edu.itba.pod.server.exceptions.*;
 import ar.edu.itba.pod.server.models.*;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
 import ar.edu.itba.pod.server.repositories.PassengerRepository;
 
+import ar.edu.itba.pod.server.utils.Pair;
 import com.google.protobuf.Empty;
 
 import io.grpc.Status;
@@ -275,15 +274,13 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
             return;
         }
 
-        Optional<Sector> maybeSector = counterRepository.getSector(sectorName);
 
-        if (maybeSector.isEmpty()) {
+        if (!counterRepository.hasSector(sectorName)) {
             responseObserver.onError(
                     Status.NOT_FOUND.withDescription("Sector not found").asRuntimeException());
             return;
         }
 
-        Sector sector = maybeSector.get();
         CounterAssignment counterAssignment = request.getAssignment();
 
         if (counterAssignment.getAirline().isEmpty()
@@ -333,8 +330,7 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
                                                                 passenger
                                                                         .airline()
                                                                         .equals(
-                                                                                counterAssignment
-                                                                                        .getAirline())));
+                                                                                counterAssignment.getAirline())));
         if (!allPassengersHaveAirline) {
             responseObserver.onError(
                     io.grpc.Status.INVALID_ARGUMENT
@@ -344,46 +340,24 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
             return;
         }
 
-        // Check if there is a flight from the CounterAssignment that is already assigned to an
-        // existing CountersRange
-        if (sector.countersRangeList().stream()
-                .filter(countersRange -> countersRange.assignedInfo().isPresent())
-                .anyMatch(
-                        countersRange ->
-                                counterAssignment.getFlightsList().stream()
-                                        .anyMatch(
-                                                countersRange.assignedInfo().get().flights()
-                                                        ::contains))) {
+        Pair<Range, Integer> assignedCounterRangeOrQueuedAssignments;
+        try{
+            assignedCounterRangeOrQueuedAssignments = counterRepository.assignCounterAssignment(sectorName, counterAssignment);
+        }catch(FlightAlreadyAssignedException e){
             responseObserver.onError(
                     io.grpc.Status.INVALID_ARGUMENT
                             .withDescription(
                                     "There is at least one flight from the assignment that is already assigned to a counter.")
                             .asRuntimeException());
             return;
-        }
-
-        List<PendingAssignment> queuedAssignments =
-                counterRepository.getQueuedAssignments(sector.sectorName());
-
-        // Check if there is a pending assignment that has at least one of the flights as the
-        // current assignment
-        if (queuedAssignments.stream()
-                .anyMatch(
-                        assignment ->
-                                counterAssignment.getFlightsList().stream()
-                                        .anyMatch(assignment.flights()::contains))) {
+        }catch(FlightAlreadyQueuedException e) {
             responseObserver.onError(
                     io.grpc.Status.INVALID_ARGUMENT
                             .withDescription(
                                     "There is at least one flight from the assignment that is already in queue to get assigned.")
                             .asRuntimeException());
             return;
-        }
-
-        // Check if any of the flights has been previously assigned to a counter (which means that
-        // it has already been checked in)
-        if (counterRepository.getPreviouslyAssignedFlights().stream()
-                .anyMatch(counterAssignment.getFlightsList()::contains)) {
+        }catch (FlightAlreadyCheckedInException e) {
             responseObserver.onError(
                     io.grpc.Status.INVALID_ARGUMENT
                             .withDescription(
@@ -394,42 +368,16 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
 
         AssignCountersResponse.Builder responseBuilder = AssignCountersResponse.newBuilder();
 
-        // TODO: Check if this takes order into consideration
-        Optional<CountersRange> maybeAvailableCounterRange =
-                sector.countersRangeList().stream()
-                        .filter(
-                                range ->
-                                        range.assignedInfo().isEmpty()
-                                                && (range.range().to() - range.range().from())
-                                                        >= counterAssignment.getCounterCount())
-                        .findFirst();
-
-        if (maybeAvailableCounterRange.isPresent()) {
-            CountersRange availableCounterRange = maybeAvailableCounterRange.get();
-            int from = availableCounterRange.range().from();
-            int to = from + counterAssignment.getCounterCount() - 1;
-            CountersRange newCountersRange =
-                    new CountersRange(
-                            new Range(from, to),
-                            new AssignedInfo(
-                                    counterAssignment.getAirline(),
-                                    counterAssignment.getFlightsList(),
-                                    0));
-            // TODO: Check if this should be done by repository or by service
-            counterRepository.assignCounterRange(sector.sectorName(), newCountersRange);
+        if(assignedCounterRangeOrQueuedAssignments.second() == 0){
+            Range range = assignedCounterRangeOrQueuedAssignments.first();
             responseBuilder
                     .setStatus(AssignationStatus.ASSIGNATION_STATUS_SUCCESSFUL)
-                    .setAssignedCounters(CounterRange.newBuilder().setFrom(from).setTo(to).build());
-        } else {
-            counterRepository.addAssignmentToQueue(
-                    request.getSectorName(),
-                    new PendingAssignment(
-                            counterAssignment.getAirline(),
-                            counterAssignment.getFlightsList(),
-                            counterAssignment.getCounterCount()));
+                    .setAssignedCounters(CounterRange.newBuilder().setFrom(range.from()).setTo(range.to()).build());
+        }
+        else{
             responseBuilder
                     .setStatus(AssignationStatus.ASSIGNATION_STATUS_PENDING)
-                    .setPendingAssignations(queuedAssignments.size());
+                    .setPendingAssignations(assignedCounterRangeOrQueuedAssignments.second());
         }
 
         responseObserver.onNext(responseBuilder.build());
