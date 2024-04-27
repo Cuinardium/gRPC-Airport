@@ -4,7 +4,13 @@ import static org.mockito.Mockito.*;
 
 import ar.edu.itba.pod.grpc.common.CounterRange;
 import ar.edu.itba.pod.grpc.counter.*;
+import ar.edu.itba.pod.grpc.events.EventType;
+import ar.edu.itba.pod.grpc.events.PassengerCheckedInInfo;
+import ar.edu.itba.pod.grpc.events.RegisterResponse;
 import ar.edu.itba.pod.server.events.EventManager;
+import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
+import ar.edu.itba.pod.server.exceptions.NotFoundException;
+import ar.edu.itba.pod.server.exceptions.UnauthorizedException;
 import ar.edu.itba.pod.server.models.*;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
@@ -56,10 +62,11 @@ public class CounterServiceTest {
                     new Sector("D", sectorDCounters),
                     new Sector("Z", Collections.emptyList()));
 
-    private final List<PendingAssignment> pendingAssignments = List.of(
-            new PendingAssignment("AirCanada", List.of("AC003"), 2),
-            new PendingAssignment("AmericanAirlines", List.of("AA987", "AA988"), 5),
-            new PendingAssignment("AirCanada", List.of("AC001"), 2));
+    private final List<PendingAssignment> pendingAssignments =
+            List.of(
+                    new PendingAssignment("AirCanada", List.of("AC003"), 2),
+                    new PendingAssignment("AmericanAirlines", List.of("AA987", "AA988"), 5),
+                    new PendingAssignment("AirCanada", List.of("AC001"), 2));
 
     private CounterServiceGrpc.CounterServiceBlockingStub blockingStub;
 
@@ -373,7 +380,10 @@ public class CounterServiceTest {
                                                         CounterAssignment.newBuilder()
                                                                 .setAirline("AmericanAirlines")
                                                                 .setCounterCount(-3)
-                                                                .addAllFlights(List.of("AA123", "AA124", "AA125"))
+                                                                .addAllFlights(
+                                                                        List.of(
+                                                                                "AA123", "AA124",
+                                                                                "AA125"))
                                                                 .build())
                                                 .build()));
 
@@ -387,8 +397,11 @@ public class CounterServiceTest {
     public void testAssignCountersFlightsWithNoPassengers() {
         when(counterRepository.getSector("C")).thenReturn(Optional.of(sectors.get(1)));
 
-        when(passengerRepository.getPassengers()).thenReturn(List.of(new Passenger("ABC123", "AA123", "AmericanAirlines"),
-                new Passenger("ABC124", "AA124", "AmericanAirlines")));
+        when(passengerRepository.getPassengers())
+                .thenReturn(
+                        List.of(
+                                new Passenger("ABC123", "AA123", "AmericanAirlines"),
+                                new Passenger("ABC124", "AA124", "AmericanAirlines")));
 
         StatusRuntimeException exception =
                 Assertions.assertThrows(
@@ -401,22 +414,29 @@ public class CounterServiceTest {
                                                         CounterAssignment.newBuilder()
                                                                 .setAirline("AmericanAirlines")
                                                                 .setCounterCount(3)
-                                                                .addAllFlights(List.of("AA123", "AA124", "AA125"))
+                                                                .addAllFlights(
+                                                                        List.of(
+                                                                                "AA123", "AA124",
+                                                                                "AA125"))
                                                                 .build())
                                                 .build()));
 
         Assertions.assertEquals(Status.INVALID_ARGUMENT.getCode(), exception.getStatus().getCode());
         Assertions.assertEquals(
-                "There are flights in the assignment that have no passengers.", exception.getStatus().getDescription());
+                "There are flights in the assignment that have no passengers.",
+                exception.getStatus().getDescription());
     }
 
     @Test
     public void testAssignCountersNotAllPassengersHaveAirline() {
         when(counterRepository.getSector("C")).thenReturn(Optional.of(sectors.get(1)));
 
-        when(passengerRepository.getPassengers()).thenReturn(List.of(new Passenger("ABC123", "AA123", "AmericanAirlines"),
-                new Passenger("ABC124", "AA124", "AmericanAirlines"),
-                new Passenger("ABC125", "AA125", "AirCanada")));
+        when(passengerRepository.getPassengers())
+                .thenReturn(
+                        List.of(
+                                new Passenger("ABC123", "AA123", "AmericanAirlines"),
+                                new Passenger("ABC124", "AA124", "AmericanAirlines"),
+                                new Passenger("ABC125", "AA125", "AirCanada")));
 
         StatusRuntimeException exception =
                 Assertions.assertThrows(
@@ -429,17 +449,20 @@ public class CounterServiceTest {
                                                         CounterAssignment.newBuilder()
                                                                 .setAirline("AmericanAirlines")
                                                                 .setCounterCount(3)
-                                                                .addAllFlights(List.of("AA123", "AA124", "AA125"))
+                                                                .addAllFlights(
+                                                                        List.of(
+                                                                                "AA123", "AA124",
+                                                                                "AA125"))
                                                                 .build())
                                                 .build()));
 
         Assertions.assertEquals(Status.INVALID_ARGUMENT.getCode(), exception.getStatus().getCode());
         Assertions.assertEquals(
-                "There are passengers with the flight code but from another airline, for at least one of the requested flights.", exception.getStatus().getDescription());
+                "There are passengers with the flight code but from another airline, for at least one of the requested flights.",
+                exception.getStatus().getDescription());
     }
 
     /// ---------- TODO: TEST rest of assign counters
-
 
     @Test
     public void testListPendingAssignmentsNoSectorName() {
@@ -451,7 +474,8 @@ public class CounterServiceTest {
                                         ListPendingAssignmentsRequest.newBuilder().build()));
 
         Assertions.assertEquals(Status.INVALID_ARGUMENT.getCode(), exception.getStatus().getCode());
-        Assertions.assertEquals("Sector name must be provided", exception.getStatus().getDescription());
+        Assertions.assertEquals(
+                "Sector name must be provided", exception.getStatus().getDescription());
     }
 
     @Test
@@ -479,15 +503,13 @@ public class CounterServiceTest {
         ListPendingAssignmentsRequest request =
                 ListPendingAssignmentsRequest.newBuilder().setSectorName("C").build();
 
-        ListPendingAssignmentsResponse response =
-                blockingStub.listPendingAssignments(request);
+        ListPendingAssignmentsResponse response = blockingStub.listPendingAssignments(request);
 
         Assertions.assertEquals(pendingAssignments.size(), response.getAssignmentsCount());
 
         for (int i = 0; i < pendingAssignments.size(); i++) {
             Assertions.assertEquals(
-                    pendingAssignments.get(i).airline(),
-                    response.getAssignments(i).getAirline());
+                    pendingAssignments.get(i).airline(), response.getAssignments(i).getAirline());
             Assertions.assertEquals(
                     pendingAssignments.get(i).flights(),
                     response.getAssignments(i).getFlightsList());
@@ -497,4 +519,169 @@ public class CounterServiceTest {
         }
     }
 
+    @Test
+    public void testCheckinCountersNoSectorName() {
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.checkinCounters(
+                                        CheckinCountersRequest.newBuilder()
+                                                .setCounterFrom(2)
+                                                .setAirline("AmericanAirlines")
+                                                .build()));
+
+        Assertions.assertEquals(Status.INVALID_ARGUMENT.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals(
+                "Sector name, counter range (positive integer) and airline must be provided",
+                exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testCheckinCountersNoAirline() {
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.checkinCounters(
+                                        CheckinCountersRequest.newBuilder()
+                                                .setSectorName("C")
+                                                .setCounterFrom(2)
+                                                .build()));
+
+        Assertions.assertEquals(Status.INVALID_ARGUMENT.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals(
+                "Sector name, counter range (positive integer) and airline must be provided",
+                exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testCheckinCountersNegativeCounterFrom() {
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.checkinCounters(
+                                        CheckinCountersRequest.newBuilder()
+                                                .setSectorName("C")
+                                                .setCounterFrom(-2)
+                                                .setAirline("AmericanAirlines")
+                                                .build()));
+
+        Assertions.assertEquals(Status.INVALID_ARGUMENT.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals(
+                "Sector name, counter range (positive integer) and airline must be provided",
+                exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testCheckinCountersNoSectorFound() {
+        when(counterRepository.hasSector("C")).thenReturn(false);
+
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.checkinCounters(
+                                        CheckinCountersRequest.newBuilder()
+                                                .setSectorName("C")
+                                                .setCounterFrom(2)
+                                                .setAirline("AmericanAirlines")
+                                                .build()));
+
+        Assertions.assertEquals(Status.NOT_FOUND.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals("Sector not found", exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testCheckinCountersCounterNotFound()
+            throws UnauthorizedException, NotFoundException {
+        when(counterRepository.hasSector("C")).thenReturn(true);
+        when(counterRepository.checkinCounters("C", 3, "AmericanAirlines"))
+                .thenThrow(new NotFoundException("Counter not found"));
+
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.checkinCounters(
+                                        CheckinCountersRequest.newBuilder()
+                                                .setSectorName("C")
+                                                .setCounterFrom(3)
+                                                .setAirline("AmericanAirlines")
+                                                .build()));
+
+        Assertions.assertEquals(Status.NOT_FOUND.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals(
+                "No assigned counters found from given number",
+                exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testCheckinCountersUnauthorized() throws NotFoundException, UnauthorizedException {
+        when(counterRepository.hasSector("C")).thenReturn(true);
+        when(counterRepository.checkinCounters("C", 3, "AmericanAirlines"))
+                .thenThrow(new UnauthorizedException("Unauthorized"));
+
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.checkinCounters(
+                                        CheckinCountersRequest.newBuilder()
+                                                .setSectorName("C")
+                                                .setCounterFrom(3)
+                                                .setAirline("AmericanAirlines")
+                                                .build()));
+
+        Assertions.assertEquals(
+                Status.PERMISSION_DENIED.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals(
+                "Counters are not assigned to the given airline",
+                exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testCheckinCounters()
+            throws NotFoundException, UnauthorizedException, AlreadyExistsException {
+        when(counterRepository.hasSector("C")).thenReturn(true);
+        when(counterRepository.checkinCounters("C", 3, "AmericanAirlines"))
+                .thenReturn(List.of(Optional.of("XYZ345"), Optional.empty()));
+        when(passengerRepository.getPassenger("XYZ345"))
+                .thenReturn(Optional.of(new Passenger("XYZ345", "AA123", "AmericanAirlines")));
+        doNothing().when(checkinRepository).addCheckin(any(Checkin.class));
+        when(eventManager.notify(anyString(), any(RegisterResponse.class))).thenReturn(true);
+
+        CheckinCountersRequest request =
+                CheckinCountersRequest.newBuilder()
+                        .setSectorName("C")
+                        .setCounterFrom(3)
+                        .setAirline("AmericanAirlines")
+                        .build();
+
+        CheckinCountersResponse response = blockingStub.checkinCounters(request);
+
+        Assertions.assertEquals(1, response.getSuccessfulCheckinsCount());
+        Assertions.assertEquals(1, response.getIdleCounterCount());
+
+        Assertions.assertEquals("XYZ345", response.getSuccessfulCheckins(0).getBooking());
+        Assertions.assertEquals("AA123", response.getSuccessfulCheckins(0).getFlight());
+        Assertions.assertEquals(3, response.getSuccessfulCheckins(0).getCounter());
+
+        verify(checkinRepository)
+                .addCheckin(new Checkin("C", 3, "AmericanAirlines", "AA123", "XYZ345"));
+        verify(eventManager)
+                .notify(
+                        "AmericanAirlines",
+                        RegisterResponse.newBuilder()
+                                .setEventType(EventType.EVENT_TYPE_PASSENGER_CHECKED_IN)
+                                .setPassengerCheckedInInfo(
+                                        PassengerCheckedInInfo.newBuilder()
+                                                .setBooking("XYZ345")
+                                                .setFlight("AA123")
+                                                .setCounter(3)
+                                                .setSectorName("C")
+                                                .build())
+                                .build());
+    }
 }
