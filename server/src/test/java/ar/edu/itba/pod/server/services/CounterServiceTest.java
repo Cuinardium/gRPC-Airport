@@ -9,7 +9,6 @@ import ar.edu.itba.pod.grpc.events.PassengerCheckedInInfo;
 import ar.edu.itba.pod.grpc.events.RegisterResponse;
 import ar.edu.itba.pod.server.events.EventManager;
 import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
-import ar.edu.itba.pod.server.exceptions.NotFoundException;
 import ar.edu.itba.pod.server.exceptions.UnauthorizedException;
 import ar.edu.itba.pod.server.models.*;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
@@ -33,6 +32,7 @@ import org.junit.runners.JUnit4;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @RunWith(JUnit4.class)
@@ -595,10 +595,10 @@ public class CounterServiceTest {
 
     @Test
     public void testCheckinCountersCounterNotFound()
-            throws UnauthorizedException, NotFoundException {
+            throws UnauthorizedException, NoSuchElementException {
         when(counterRepository.hasSector("C")).thenReturn(true);
         when(counterRepository.checkinCounters("C", 3, "AmericanAirlines"))
-                .thenThrow(new NotFoundException("Counter not found"));
+                .thenThrow(new NoSuchElementException("Counter not found"));
 
         StatusRuntimeException exception =
                 Assertions.assertThrows(
@@ -618,7 +618,7 @@ public class CounterServiceTest {
     }
 
     @Test
-    public void testCheckinCountersUnauthorized() throws NotFoundException, UnauthorizedException {
+    public void testCheckinCountersUnauthorized() throws NoSuchElementException, UnauthorizedException {
         when(counterRepository.hasSector("C")).thenReturn(true);
         when(counterRepository.checkinCounters("C", 3, "AmericanAirlines"))
                 .thenThrow(new UnauthorizedException("Unauthorized"));
@@ -643,7 +643,7 @@ public class CounterServiceTest {
 
     @Test
     public void testCheckinCounters()
-            throws NotFoundException, UnauthorizedException, AlreadyExistsException {
+            throws NoSuchElementException, UnauthorizedException, AlreadyExistsException {
         when(counterRepository.hasSector("C")).thenReturn(true);
         when(counterRepository.checkinCounters("C", 3, "AmericanAirlines"))
                 .thenReturn(List.of(Optional.of("XYZ345"), Optional.empty()));

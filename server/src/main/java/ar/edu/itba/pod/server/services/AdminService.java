@@ -3,7 +3,6 @@ package ar.edu.itba.pod.server.services;
 import ar.edu.itba.pod.grpc.admin.*;
 import ar.edu.itba.pod.grpc.common.CounterRange;
 import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
-import ar.edu.itba.pod.server.exceptions.NotFoundException;
 import ar.edu.itba.pod.server.models.Passenger;
 import ar.edu.itba.pod.server.models.Range;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
@@ -16,6 +15,8 @@ import io.grpc.stub.StreamObserver;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.NoSuchElementException;
 
 public class AdminService extends AdminServiceGrpc.AdminServiceImplBase {
 
@@ -107,7 +108,7 @@ public class AdminService extends AdminServiceGrpc.AdminServiceImplBase {
                     range.from(),
                     range.to());
 
-        } catch (NotFoundException e) {
+        } catch (NoSuchElementException e) {
             responseObserver.onError(
                     Status.NOT_FOUND
                             .withDescription("The specified sector does not exist")

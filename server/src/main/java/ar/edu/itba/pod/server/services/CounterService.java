@@ -7,7 +7,6 @@ import ar.edu.itba.pod.grpc.events.PassengerCheckedInInfo;
 import ar.edu.itba.pod.grpc.events.RegisterResponse;
 import ar.edu.itba.pod.server.events.EventManager;
 import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
-import ar.edu.itba.pod.server.exceptions.NotFoundException;
 import ar.edu.itba.pod.server.exceptions.UnauthorizedException;
 import ar.edu.itba.pod.server.models.*;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
@@ -92,6 +91,8 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
         int counterFrom = request.getCounterFrom();
         String airline = request.getAirline();
 
+        Status.NOT_FOUND.asRuntimeException();
+
         if (sectorName.isEmpty() || counterFrom <= 0 || airline.isEmpty()) {
             responseObserver.onError(
                     Status.INVALID_ARGUMENT
@@ -110,7 +111,7 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
         List<Optional<String>> checkedInBookings;
         try {
             checkedInBookings = counterRepository.checkinCounters(sectorName, counterFrom, airline);
-        } catch (NotFoundException e) {
+        } catch (NoSuchElementException e) {
             responseObserver.onError(
                     Status.NOT_FOUND
                             .withDescription("No assigned counters found from given number")

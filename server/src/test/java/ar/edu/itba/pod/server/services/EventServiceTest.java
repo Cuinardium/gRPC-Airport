@@ -5,7 +5,6 @@ import static org.mockito.Mockito.*;
 import ar.edu.itba.pod.grpc.events.*;
 import ar.edu.itba.pod.server.events.EventManager;
 import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
-import ar.edu.itba.pod.server.exceptions.NotFoundException;
 import ar.edu.itba.pod.server.repositories.PassengerRepository;
 
 import io.grpc.ManagedChannel;
@@ -23,6 +22,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -72,8 +72,8 @@ public class EventServiceTest {
     }
 
     @Test
-    public void testUnregisterNotFound() throws NotFoundException {
-        doThrow(NotFoundException.class).when(eventManager).unregister("Iberia");
+    public void testUnregisterNotFound() throws NoSuchElementException {
+        doThrow(NoSuchElementException.class).when(eventManager).unregister("Iberia");
 
         StatusRuntimeException exception =
                 Assertions.assertThrows(
@@ -91,7 +91,7 @@ public class EventServiceTest {
     }
 
     @Test
-    public void testUnregister() throws NotFoundException {
+    public void testUnregister() throws NoSuchElementException {
         Assertions.assertDoesNotThrow(
                 () ->
                         blockingStub.unregister(

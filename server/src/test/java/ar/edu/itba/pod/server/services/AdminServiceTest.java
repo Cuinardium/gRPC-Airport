@@ -8,7 +8,6 @@ import ar.edu.itba.pod.grpc.admin.AddSectorRequest;
 import ar.edu.itba.pod.grpc.admin.AdminServiceGrpc;
 import ar.edu.itba.pod.grpc.common.CounterRange;
 import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
-import ar.edu.itba.pod.server.exceptions.NotFoundException;
 import ar.edu.itba.pod.server.models.Passenger;
 import ar.edu.itba.pod.server.models.Range;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
@@ -26,6 +25,8 @@ import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import java.util.NoSuchElementException;
 
 @RunWith(JUnit4.class)
 public class AdminServiceTest {
@@ -134,8 +135,8 @@ public class AdminServiceTest {
     }
 
     @Test
-    public void testAddCountersSectorNotFound() throws NotFoundException {
-        doThrow(NotFoundException.class).when(counterRepository).addCounters(sector, counterCount);
+    public void testAddCountersSectorNotFound() throws NoSuchElementException {
+        doThrow(NoSuchElementException.class).when(counterRepository).addCounters(sector, counterCount);
 
         StatusRuntimeException exception =
                 Assertions.assertThrows(
@@ -153,7 +154,7 @@ public class AdminServiceTest {
     }
 
     @Test
-    public void testAddCountersSuccess() throws NotFoundException {
+    public void testAddCountersSuccess() throws NoSuchElementException {
         when(counterRepository.addCounters(sector, counterCount))
                 .thenReturn(new Range(1, counterCount));
 

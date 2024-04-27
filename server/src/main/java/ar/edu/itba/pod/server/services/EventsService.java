@@ -3,7 +3,6 @@ package ar.edu.itba.pod.server.services;
 import ar.edu.itba.pod.grpc.events.*;
 import ar.edu.itba.pod.server.events.EventManager;
 import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
-import ar.edu.itba.pod.server.exceptions.NotFoundException;
 import ar.edu.itba.pod.server.repositories.PassengerRepository;
 
 import com.google.protobuf.Empty;
@@ -12,6 +11,8 @@ import io.grpc.stub.StreamObserver;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.NoSuchElementException;
 
 public class EventsService extends EventsServiceGrpc.EventsServiceImplBase {
 
@@ -50,7 +51,7 @@ public class EventsService extends EventsServiceGrpc.EventsServiceImplBase {
             eventManager.unregister(airline);
 
             logger.debug("(eventsService/unregister) unregistered airline {}", airline);
-        } catch (NotFoundException e) {
+        } catch (NoSuchElementException e) {
             responseObserver.onError(
                     Status.NOT_FOUND
                             .withDescription("This airline is not registered for events")

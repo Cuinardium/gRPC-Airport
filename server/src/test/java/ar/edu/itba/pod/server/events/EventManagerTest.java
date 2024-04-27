@@ -3,7 +3,6 @@ package ar.edu.itba.pod.server.events;
 import ar.edu.itba.pod.grpc.common.CounterRange;
 import ar.edu.itba.pod.grpc.events.*;
 import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
-import ar.edu.itba.pod.server.exceptions.NotFoundException;
 
 import io.grpc.stub.StreamObserver;
 
@@ -13,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public class EventManagerTest {
 
@@ -149,7 +149,7 @@ public class EventManagerTest {
     }
 
     @Test
-    public void testUnregister() throws AlreadyExistsException, NotFoundException {
+    public void testUnregister() throws AlreadyExistsException, NoSuchElementException {
         String airline = "AmericanAirlines";
 
 
@@ -177,7 +177,7 @@ public class EventManagerTest {
         eventManager.register(airline, eventStream);
         eventManager.unregister(airline);
 
-        Assertions.assertThrows(NotFoundException.class, () -> eventManager.unregister(airline));
+        Assertions.assertThrows(NoSuchElementException.class, () -> eventManager.unregister(airline));
 
         // Assert that the stream was closed
         Assertions.assertThrows(
@@ -188,7 +188,7 @@ public class EventManagerTest {
     public void testUnregisterNotRegistered() {
         String airline = "AmericanAirlines";
 
-        Assertions.assertThrows(NotFoundException.class, () -> eventManager.unregister(airline));
+        Assertions.assertThrows(NoSuchElementException.class, () -> eventManager.unregister(airline));
     }
 
     @Test

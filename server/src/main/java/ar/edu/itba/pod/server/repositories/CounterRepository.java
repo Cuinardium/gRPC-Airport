@@ -1,13 +1,13 @@
 package ar.edu.itba.pod.server.repositories;
 
 import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
-import ar.edu.itba.pod.server.exceptions.NotFoundException;
 import ar.edu.itba.pod.server.exceptions.UnauthorizedException;
 import ar.edu.itba.pod.server.models.*;
 import ar.edu.itba.pod.server.utils.Pair;
 
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 public interface CounterRepository {
@@ -30,11 +30,11 @@ public interface CounterRepository {
     boolean hasPassengerInCounter(Range counterRange, String booking);
 
     void addSector(String sector) throws AlreadyExistsException;
-    Range addCounters(String sector, int counterCount) throws NotFoundException;
+    Range addCounters(String sector, int counterCount) throws NoSuchElementException;
     int addPassengerToQueue(Range counterRange, String booking) throws AlreadyExistsException;
     void addAssignmentToQueue(String sector, PendingAssignment assignment);
 
     int freeCounters(String sector, List<CountersRange> countersToFree);
 
-    List<Optional<String>> checkinCounters(String sector, int counterFrom, String airline) throws NotFoundException, UnauthorizedException;
+    List<Optional<String>> checkinCounters(String sector, int counterFrom, String airline) throws NoSuchElementException, UnauthorizedException;
 }

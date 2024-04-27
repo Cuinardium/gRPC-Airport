@@ -3,10 +3,10 @@ package ar.edu.itba.pod.server.events;
 import ar.edu.itba.pod.grpc.events.RegisterResponse;
 
 import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
-import ar.edu.itba.pod.server.exceptions.NotFoundException;
 import io.grpc.stub.StreamObserver;
 
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class EventManagerImpl implements EventManager {
@@ -25,9 +25,9 @@ public class EventManagerImpl implements EventManager {
     }
 
     @Override
-    public void unregister(String airline) throws NotFoundException {
+    public void unregister(String airline) throws NoSuchElementException {
         if (!streams.containsKey(airline)) {
-            throw new NotFoundException("This airline is not registered for events");
+            throw new NoSuchElementException("This airline is not registered for events");
         }
 
         StreamObserver<RegisterResponse> airlineStream = streams.get(airline);

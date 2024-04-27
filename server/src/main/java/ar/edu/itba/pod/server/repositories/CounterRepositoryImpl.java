@@ -1,7 +1,6 @@
 package ar.edu.itba.pod.server.repositories;
 
 import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
-import ar.edu.itba.pod.server.exceptions.NotFoundException;
 import ar.edu.itba.pod.server.exceptions.UnauthorizedException;
 import ar.edu.itba.pod.server.models.CountersRange;
 import ar.edu.itba.pod.server.models.PendingAssignment;
@@ -10,6 +9,7 @@ import ar.edu.itba.pod.server.models.Sector;
 import ar.edu.itba.pod.server.utils.Pair;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 public class CounterRepositoryImpl implements CounterRepository {
@@ -82,7 +82,7 @@ public class CounterRepositoryImpl implements CounterRepository {
     public void addSector(String sector) throws AlreadyExistsException {}
 
     @Override
-    public Range addCounters(String sector, int counterCount) throws NotFoundException {
+    public Range addCounters(String sector, int counterCount) throws NoSuchElementException {
         return null;
     }
 
@@ -102,7 +102,7 @@ public class CounterRepositoryImpl implements CounterRepository {
     }
 
     @Override
-    public List<Optional<String>> checkinCounters(String sector, int counterFrom, String airline) throws NotFoundException, UnauthorizedException {
+    public List<Optional<String>> checkinCounters(String sector, int counterFrom, String airline) throws NoSuchElementException, UnauthorizedException {
         return List.of();
     }
 }
