@@ -1,5 +1,7 @@
 package ar.edu.itba.pod.server.models;
 
+import ar.edu.itba.pod.grpc.common.CounterRange;
+
 import java.util.Objects;
 import java.util.Optional;
 
@@ -41,5 +43,13 @@ public final class CountersRange {
     @Override
     public String toString() {
         return "CountersRange[" + "range=" + range + ", " + "assignedInfo=" + assignedInfo + ']';
+    }
+
+    public CounterRange grpcMessage(CountersRange countersRange) {
+        return CounterRange
+                .newBuilder()
+                .setFrom(this.range.from())
+                .setTo(this.range.to())
+                .build();
     }
 }

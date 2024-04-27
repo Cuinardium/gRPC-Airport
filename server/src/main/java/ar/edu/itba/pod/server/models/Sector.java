@@ -1,5 +1,8 @@
 package ar.edu.itba.pod.server.models;
 
+import ar.edu.itba.pod.grpc.common.CounterRange;
+import ar.edu.itba.pod.grpc.counter.SectorInfo;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -31,5 +34,18 @@ public final class Sector {
     @Override
     public int hashCode() {
         return Objects.hash(sectorName, countersRangeList);
+    }
+
+    public SectorInfo grpcMessage() {
+        return SectorInfo
+                .newBuilder()
+                .setSectorName(this.sectorName)
+                .addAllCounterRanges(this.countersRangeList.stream().map(
+                                counterRange -> CounterRange.newBuilder()
+                                        .setFrom(counterRange.range().from())
+                                        .setTo(counterRange.range().to())
+                                        .build())
+                        .toList())
+                .build();
     }
 }
