@@ -89,17 +89,29 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
                         .filter(passenger -> counterAssignment.getFlightsList().contains(passenger.flight()))
                         .collect(Collectors.groupingBy(Passenger::flight));
 
+        // Check if all flights have passengers
+        boolean allFlightsHavePassengers = counterAssignment.getFlightsList()
+                .stream()
+                .allMatch(passengersByFlight::containsKey);
+
+        if(!allFlightsHavePassengers){
+            responseObserver.onError(
+                    io.grpc.Status.INVALID_ARGUMENT
+                            .withDescription("There are flights in the assignment that have no passengers.")
+                            .asRuntimeException());
+            return;
+        }
+
         // Check if all passengers have the airline of the assignment, if not, return an error
-        if(
-                passengersByFlight
-                        .values()
-                        .stream()
-                        .anyMatch(
-                                passengersList -> passengersList
-                                                    .stream()
-                                                    .anyMatch(passenger -> !passenger.airline().equals(counterAssignment.getAirline()))
-                        )
-        ){
+        boolean allPassengersHaveAirline = passengersByFlight
+                .values()
+                .stream()
+                .allMatch(
+                        passengersList -> passengersList
+                                .stream()
+                                .allMatch(passenger -> passenger.airline().equals(counterAssignment.getAirline()))
+                );
+        if(!allPassengersHaveAirline){
             responseObserver.onError(
                     io.grpc.Status.INVALID_ARGUMENT
                             .withDescription("There are passengers with the flight code but from another airline, for at least one of the requested flights.")
