@@ -39,6 +39,26 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
     public void listPendingAssignments(
             ListPendingAssignmentsRequest request,
             StreamObserver<ListPendingAssignmentsResponse> responseObserver) {
+        String sectorName = request.getSectorName();
+
+        if(!counterRepository.hasSector(sectorName)){
+            responseObserver.onError(
+                    Status.NOT_FOUND
+                            .withDescription("Sector not found")
+                            .asRuntimeException());
+            return;
+        }
+
+        List<CounterAssignment> pendingAssignments = counterRepository.getQueuedAssignments(sectorName);
+
+        ListPendingAssignmentsResponse response =
+                ListPendingAssignmentsResponse
+                        .newBuilder()
+                        .addAllAssignments(pendingAssignments)
+                        .build();
+
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
 
     }
 
@@ -52,6 +72,7 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
     @Override
     public void freeCounters(
             FreeCountersRequest request, StreamObserver<FreeCountersResponse> responseObserver) {
+
     }
 
     @Override
