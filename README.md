@@ -9,3 +9,13 @@ This system has 5 services:
 * Airline Notification Service
 * Counter Query Service
 
+## Installation
+
+Clone the project and execute the following command:
+```
+mvn clean install
+```
+
+## Use
+
+
