@@ -342,7 +342,8 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
 
         Pair<Range, Integer> assignedCounterRangeOrQueuedAssignments;
         try{
-            assignedCounterRangeOrQueuedAssignments = counterRepository.assignCounterAssignment(sectorName, counterAssignment);
+            Assignment assignment = new Assignment(counterAssignment.getAirline(), counterAssignment.getFlightsList(), counterAssignment.getCounterCount());
+            assignedCounterRangeOrQueuedAssignments = counterRepository.assignCounterAssignment(sectorName, assignment);
         }catch(FlightAlreadyAssignedException e){
             responseObserver.onError(
                     io.grpc.Status.INVALID_ARGUMENT
