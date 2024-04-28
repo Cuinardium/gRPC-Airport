@@ -77,7 +77,7 @@ public class CounterClient {
                             rangeStringBuilder.append("-");
                         }
                         for (CounterRange range : sector.getCounterRangesList()) {
-                            rangeStringBuilder.append("(").append(range.getTo()).append("-").append(range.getFrom()).append(")");
+                            rangeStringBuilder.append("(").append(range.getFrom()).append("-").append(range.getTo()).append(")");
                         }
                         System.out.printf("%-10s%-10s\n", sector.getSectorName(), rangeStringBuilder);
                     }
