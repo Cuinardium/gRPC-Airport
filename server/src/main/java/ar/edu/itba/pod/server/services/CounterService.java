@@ -260,6 +260,20 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
                         .addAllFlights(flights)
                         .build();
 
+        RegisterResponse registerResponse = RegisterResponse.newBuilder()
+                .setEventType(EventType.EVENT_TYPE_COUNTERS_FREED)
+                .setCountersFreedInfo(CountersFreedInfo.newBuilder()
+                        .setSectorName(sectorName)
+                        .addAllFlights(flights)
+                        .setCounters(CounterRange.newBuilder()
+                                .setFrom(from)
+                                .setTo(to)
+                                .build())
+                        .build())
+                .build();
+
+        eventManager.notify(airline, registerResponse);
+
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
