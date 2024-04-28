@@ -741,9 +741,207 @@ public class CounterServiceTest {
                                                 .setPendingAssignations(7)
                                                 .build())
                                 .build());
-
     }
 
+    @Test
+    public void testFreeCountersNoSectorName() {
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.freeCounters(
+                                        FreeCountersRequest.newBuilder()
+                                                .setCounterFrom(2)
+                                                .setAirline("A")
+                                                .build()));
+
+        Assertions.assertEquals(Status.INVALID_ARGUMENT.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals(
+                "Sector name, counter range (positive integer) and airline must be provided",
+                exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testFreeCountersNoAirline() {
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.freeCounters(
+                                        FreeCountersRequest.newBuilder()
+                                                .setSectorName("A")
+                                                .setCounterFrom(2)
+                                                .build()));
+
+        Assertions.assertEquals(Status.INVALID_ARGUMENT.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals(
+                "Sector name, counter range (positive integer) and airline must be provided",
+                exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testFreeCountersNegativeCounterFrom() {
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.freeCounters(
+                                        FreeCountersRequest.newBuilder()
+                                                .setSectorName("A")
+                                                .setCounterFrom(-2)
+                                                .setAirline("A")
+                                                .build()));
+
+        Assertions.assertEquals(Status.INVALID_ARGUMENT.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals(
+                "Sector name, counter range (positive integer) and airline must be provided",
+                exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testFreeCountersNoSectorFound()
+            throws HasPendingPassengersException, UnauthorizedException {
+        when(counterRepository.freeCounters("A", 2, "A"))
+                .thenThrow(
+                        new NoSuchElementException(
+                                "Sector does not exist or no counters found for the specified range and airline"));
+
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.freeCounters(
+                                        FreeCountersRequest.newBuilder()
+                                                .setSectorName("A")
+                                                .setCounterFrom(2)
+                                                .setAirline("A")
+                                                .build()));
+
+        Assertions.assertEquals(Status.NOT_FOUND.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals(
+                "Sector does not exist or no counters found for the specified range and airline",
+                exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testFreeCountersNoCountersInRange()
+            throws HasPendingPassengersException, UnauthorizedException {
+        when(counterRepository.hasSector("A")).thenReturn(true);
+        when(counterRepository.freeCounters("A", 2, "A"))
+                .thenThrow(
+                        new NoSuchElementException(
+                                "No counters found for the specified range and airline"));
+
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.freeCounters(
+                                        FreeCountersRequest.newBuilder()
+                                                .setSectorName("A")
+                                                .setCounterFrom(2)
+                                                .setAirline("A")
+                                                .build()));
+
+        Assertions.assertEquals(Status.NOT_FOUND.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals(
+                "Sector does not exist or no counters found for the specified range and airline",
+                exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testFreeCountersHasPendingPassengers()
+            throws HasPendingPassengersException, UnauthorizedException {
+        when(counterRepository.hasSector("A")).thenReturn(true);
+        when(counterRepository.freeCounters("A", 2, "A"))
+                .thenThrow(
+                        new HasPendingPassengersException(
+                                "There are passengers in queue for the specified range and airline"));
+
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.freeCounters(
+                                        FreeCountersRequest.newBuilder()
+                                                .setSectorName("A")
+                                                .setCounterFrom(2)
+                                                .setAirline("A")
+                                                .build()));
+
+        Assertions.assertEquals(
+                Status.FAILED_PRECONDITION.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals(
+                "There are passengers waiting to check in in the specified counters",
+                exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testFreeCountersUnauthorized()
+            throws HasPendingPassengersException, UnauthorizedException {
+        when(counterRepository.hasSector("A")).thenReturn(true);
+        when(counterRepository.freeCounters("A", 2, "A"))
+                .thenThrow(new UnauthorizedException("Unauthorized"));
+
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.freeCounters(
+                                        FreeCountersRequest.newBuilder()
+                                                .setSectorName("A")
+                                                .setCounterFrom(2)
+                                                .setAirline("A")
+                                                .build()));
+
+        Assertions.assertEquals(
+                Status.PERMISSION_DENIED.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals(
+                "Counters are not assigned to the given airline",
+                exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testFreeCounters() throws HasPendingPassengersException, UnauthorizedException {
+        when(counterRepository.hasSector("A")).thenReturn(true);
+        when(counterRepository.freeCounters("A", 2, "A"))
+                .thenReturn(
+                        new CountersRange(
+                                new Range(2, 4),
+                                new AssignedInfo("A", List.of("A1", "A2", "A3"), 0)));
+        when(eventManager.notify(anyString(), any(RegisterResponse.class))).thenReturn(true);
+
+        FreeCountersRequest request =
+                FreeCountersRequest.newBuilder()
+                        .setSectorName("A")
+                        .setCounterFrom(2)
+                        .setAirline("A")
+                        .build();
+
+        FreeCountersResponse response = blockingStub.freeCounters(request);
+
+        Assertions.assertEquals(2, response.getCounterRange().getFrom());
+        Assertions.assertEquals(4, response.getCounterRange().getTo());
+        Assertions.assertEquals(3, response.getFreedCounters());
+        Assertions.assertEquals(List.of("A1", "A2", "A3"), response.getFlightsList());
+
+        verify(eventManager)
+                .notify(
+                        "A",
+                        RegisterResponse.newBuilder()
+                                .setEventType(EventType.EVENT_TYPE_COUNTERS_FREED)
+                                .setCountersFreedInfo(
+                                        CountersFreedInfo.newBuilder()
+                                                .setSectorName("A")
+                                                .setCounters(
+                                                        CounterRange.newBuilder()
+                                                                .setFrom(2)
+                                                                .setTo(4)
+                                                                .build())
+                                                .addAllFlights(List.of("A1", "A2", "A3"))
+                                                .build())
+                                .build());
+    }
 
     @Test
     public void testListPendingAssignmentsNoSectorName() {
@@ -967,25 +1165,5 @@ public class CounterServiceTest {
                                                 .setSectorName("C")
                                                 .build())
                                 .build());
-    }
-
-    @Test
-    public void testFreeCountersNoSector() throws HasPendingPassengersException {
-        when(counterRepository.freeCounters("A", 1, "A")).thenThrow(NoSuchElementException.class);
-        FreeCountersRequest freeCountersRequest =
-                FreeCountersRequest.newBuilder()
-                        .setSectorName("A")
-                        .setCounterFrom(1)
-                        .setAirline("A")
-                        .build();
-        StatusRuntimeException exception =
-                Assertions.assertThrows(
-                        StatusRuntimeException.class,
-                        () -> blockingStub.freeCounters(freeCountersRequest));
-
-        Assertions.assertEquals(Status.NOT_FOUND.getCode(), exception.getStatus().getCode());
-        Assertions.assertEquals(
-                "Sector does not exist or no counters found for the specified range and airline",
-                exception.getStatus().getDescription());
     }
 }
