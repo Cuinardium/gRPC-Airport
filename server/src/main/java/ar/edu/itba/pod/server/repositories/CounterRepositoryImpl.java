@@ -128,7 +128,7 @@ public class CounterRepositoryImpl implements CounterRepository {
                                 range -> range.assignedInfo().isEmpty() && (range.range().to() - range.range().from() + 1) >= assignment.counterCount()
                         ).findFirst();
 
-                // Es incremental asi que si alguno no se pudo asignar -> el resto tampoco se va a poder
+                // Si el primero no se pudo asignar, probamos con el siguiente
                 if (maybeFreeCounterRange.isEmpty()){
                     continue;
                 }
