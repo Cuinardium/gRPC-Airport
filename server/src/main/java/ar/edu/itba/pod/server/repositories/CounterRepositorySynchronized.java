@@ -86,6 +86,8 @@ public class CounterRepositorySynchronized implements CounterRepository {
 
         counters.set(counters.size() - 1, new CountersRange(newRange));
 
+        tryPendingAssignments(sector);
+
         return newRange;
     }
 
@@ -194,35 +196,8 @@ public class CounterRepositorySynchronized implements CounterRepository {
 
         // If there is an available range, assign the flights to it
         if (maybeAvailableCounterRange.isPresent()) {
-            CountersRange availableCounterRange = maybeAvailableCounterRange.get();
-
-            int from1 = availableCounterRange.range().from();
-            int to1 = from1 + counterAssignment.counterCount() - 1;
-
-            int from2 = to1 + 1;
-            int to2 = availableCounterRange.range().to();
-
-            CountersRange newAssignedCountersRange =
-                    new CountersRange(
-                            new Range(from1, to1),
-                            new AssignedInfo(
-                                    counterAssignment.airline(), counterAssignment.flights(), 0));
-
-            for (int i = 0; i < sector.countersRangeList().size(); i++) {
-                if (sector.countersRangeList()
-                        .get(i)
-                        .range()
-                        .equals(availableCounterRange.range())) {
-                    sector.countersRangeList().set(i, newAssignedCountersRange);
-
-                    if (from2 <= to2) {
-                        sector.countersRangeList()
-                                .add(i + 1, new CountersRange(new Range(from2, to2)));
-                    }
-                }
-            }
-
-            return new Pair<>(newAssignedCountersRange.range(), 0);
+            Range assignedRange = assignInfoToAvailableCounterRange(counterAssignment, sector, maybeAvailableCounterRange.get());
+            return new Pair<>(assignedRange, 0);
         } else {
             int pendingAhead = addAssignmentToQueue(sectorName, counterAssignment);
             return new Pair<>(null, pendingAhead);
@@ -265,22 +240,12 @@ public class CounterRepositorySynchronized implements CounterRepository {
         counters.remove(toFreeCounter);
         counters.add(new CountersRange(toFreeCounter.range()));
 
-        // TODO: check for pending assignments and, if possible, assign them
+        tryPendingAssignments(sector);
 
         return toFreeCounter;
     }
 
     // -------- Queues-Assignments --------
-    private synchronized int addAssignmentToQueue(String sector, Assignment assignment) {
-        assignmentQueues.putIfAbsent(sector, new LinkedList<>());
-        Queue<Assignment> assignments = assignmentQueues.get(sector);
-        int qtyAssignmentsAhead = assignments.size();
-        assignments.add(assignment);
-        return qtyAssignmentsAhead;
-    }
-
-    private synchronized void removeAssignmentFromQueue(String sector, Assignment assignment) {}
-
     @Override
     public synchronized Queue<Assignment> getQueuedAssignments(String sector) {
         return assignmentQueues.getOrDefault(sector, new LinkedList<>());
@@ -386,5 +351,71 @@ public class CounterRepositorySynchronized implements CounterRepository {
         sectors.get(counterSector)
                 .countersRangeList()
                 .set(counterIndex, new CountersRange(range, assignedInfo));
+    }
+
+    private synchronized void tryPendingAssignments(String sectorName) {
+        if (!assignmentQueues.containsKey(sectorName)) {
+            return;
+        }
+
+        Queue<Assignment> assignments = assignmentQueues.get(sectorName);
+        if (assignments.isEmpty()) {
+            return;
+        }
+
+
+        for(int i = 0; i < assignments.size(); i++){
+            Assignment assignment = assignments.peek();
+            Sector sector = sectors.get(sectorName);
+            Optional<CountersRange> maybeAvailableCounterRange =
+                    sector.countersRangeList().stream()
+                            .filter(
+                                    range ->
+                                            range.assignedInfo().isEmpty()
+                                                    && (range.range().to() - range.range().from())
+                                                    >= assignment.counterCount())
+                            .findFirst();
+
+            // If first pending can't be assigned, then the rest can't be assigned
+            if (maybeAvailableCounterRange.isEmpty()){
+                break;
+            }
+
+            assignInfoToAvailableCounterRange(assignment, sector, maybeAvailableCounterRange.get());
+            assignments.poll();
+        }
+    }
+
+    private Range assignInfoToAvailableCounterRange(Assignment counterAssignment, Sector sector, CountersRange availableCounterRange) {
+        int from1 = availableCounterRange.range().from();
+        int to1 = from1 + counterAssignment.counterCount() - 1;
+
+        int from2 = to1 + 1;
+        int to2 = availableCounterRange.range().to();
+
+        CountersRange newAssignedCountersRange =
+                new CountersRange(
+                        new Range(from1, to1),
+                        new AssignedInfo(
+                                counterAssignment.airline(), counterAssignment.flights(), 0));
+
+        for (int i = 0; i < sector.countersRangeList().size(); i++) {
+            if (sector.countersRangeList().get(i).range().equals(availableCounterRange.range())) {
+                sector.countersRangeList().set(i, newAssignedCountersRange);
+                if (from2 <= to2) {
+                    sector.countersRangeList().add(i + 1, new CountersRange(new Range(from2, to2)));
+                }
+                break;
+            }
+        }
+        return newAssignedCountersRange.range();
+    }
+
+    private synchronized int addAssignmentToQueue(String sector, Assignment assignment) {
+        assignmentQueues.putIfAbsent(sector, new LinkedList<>());
+        Queue<Assignment> assignments = assignmentQueues.get(sector);
+        int qtyAssignmentsAhead = assignments.size();
+        assignments.add(assignment);
+        return qtyAssignmentsAhead;
     }
 }
