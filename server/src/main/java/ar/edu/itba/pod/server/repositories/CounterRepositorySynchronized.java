@@ -140,8 +140,8 @@ public class CounterRepositorySynchronized implements CounterRepository {
     public Pair<Range, Integer> assignCounterAssignment(
             String sectorName, Assignment counterAssignment)
             throws FlightAlreadyAssignedException,
-            FlightAlreadyQueuedException,
-            FlightAlreadyCheckedInException {
+                    FlightAlreadyQueuedException,
+                    FlightAlreadyCheckedInException {
         if (!hasSector(sectorName)) {
             throw new NoSuchElementException("Sector does not exist");
         }
@@ -189,7 +189,7 @@ public class CounterRepositorySynchronized implements CounterRepository {
                                 range ->
                                         range.assignedInfo().isEmpty()
                                                 && (range.range().to() - range.range().from())
-                                                >= counterAssignment.counterCount())
+                                                        >= counterAssignment.counterCount())
                         .findFirst();
 
         // If there is an available range, assign the flights to it
@@ -208,13 +208,16 @@ public class CounterRepositorySynchronized implements CounterRepository {
                             new AssignedInfo(
                                     counterAssignment.airline(), counterAssignment.flights(), 0));
 
-
             for (int i = 0; i < sector.countersRangeList().size(); i++) {
-                if (sector.countersRangeList().get(i).range().equals(availableCounterRange.range())) {
+                if (sector.countersRangeList()
+                        .get(i)
+                        .range()
+                        .equals(availableCounterRange.range())) {
                     sector.countersRangeList().set(i, newAssignedCountersRange);
 
                     if (from2 <= to2) {
-                        sector.countersRangeList().add(i + 1, new CountersRange(new Range(from2, to2)));
+                        sector.countersRangeList()
+                                .add(i + 1, new CountersRange(new Range(from2, to2)));
                     }
                 }
             }
@@ -232,29 +235,29 @@ public class CounterRepositorySynchronized implements CounterRepository {
     }
 
     @Override
-    public synchronized CountersRange freeCounters(String sector, int counterFrom, String airline) throws NoSuchElementException, HasPendingPassengersException {
-        if(!hasSector(sector)) {
+    public synchronized CountersRange freeCounters(String sector, int counterFrom, String airline)
+            throws NoSuchElementException, HasPendingPassengersException {
+        if (!hasSector(sector)) {
             throw new NoSuchElementException("Sector does not exist");
         }
         List<CountersRange> counters = sectors.get(sector).countersRangeList();
-        
+
         CountersRange toFreeCounter = null;
-        for(CountersRange range : counters) {
-            if(range.range().from() >= counterFrom
+        for (CountersRange range : counters) {
+            if (range.range().from() >= counterFrom
                     && range.assignedInfo().isPresent()
-                    && range.assignedInfo().get().airline().equals(airline)
-            ) {
+                    && range.assignedInfo().get().airline().equals(airline)) {
                 toFreeCounter = range;
                 break;
             }
         }
 
-        if(toFreeCounter == null) {
+        if (toFreeCounter == null) {
             throw new NoSuchElementException("Counter does not exist or not assigned");
         }
 
-        if(passengersInCounters.containsKey(toFreeCounter.range())) {
-            if(!passengersInCounters.get(toFreeCounter.range()).isEmpty()) {
+        if (passengersInCounters.containsKey(toFreeCounter.range())) {
+            if (!passengersInCounters.get(toFreeCounter.range()).isEmpty()) {
                 throw new HasPendingPassengersException("Counter has pending passengers");
             }
         }
@@ -262,8 +265,8 @@ public class CounterRepositorySynchronized implements CounterRepository {
         counters.remove(toFreeCounter);
         counters.add(new CountersRange(toFreeCounter.range()));
 
-        //TODO: check for pending assignments and, if possible, assign them
-        
+        // TODO: check for pending assignments and, if possible, assign them
+
         return toFreeCounter;
     }
 
@@ -276,8 +279,7 @@ public class CounterRepositorySynchronized implements CounterRepository {
         return qtyAssignmentsAhead;
     }
 
-    private synchronized void removeAssignmentFromQueue(String sector, Assignment assignment) {
-    }
+    private synchronized void removeAssignmentFromQueue(String sector, Assignment assignment) {}
 
     @Override
     public synchronized Queue<Assignment> getQueuedAssignments(String sector) {
@@ -303,8 +305,10 @@ public class CounterRepositorySynchronized implements CounterRepository {
         }
 
         Queue<String> passengers = passengersInCounters.get(counterRange);
-
         passengers.add(booking);
+
+        // Set new CountersRange with the updated queue size
+        updateCounterRange(counterRange, passengers.size());
 
         return passengers.size();
     }
@@ -344,6 +348,43 @@ public class CounterRepositorySynchronized implements CounterRepository {
             }
         }
 
+        // Set new CountersRange with the updated queue size
+        updateCounterRange(counter.range(), passengers.size());
+
         return result;
+    }
+
+
+    // ------ Private methods ------
+    private synchronized void updateCounterRange(Range range, int newQueueSize) {
+
+        // Find the sector and index of the CountersRange
+        String counterSector = null;
+        int counterIndex = -1;
+        CountersRange countersRange = null;
+        for (Sector sector : sectors.values()) {
+            for (CountersRange countersRangeInSector : sector.countersRangeList()) {
+                if (countersRangeInSector.range().equals(range)) {
+                    countersRange = countersRangeInSector;
+                    counterSector = sector.sectorName();
+                    counterIndex = sector.countersRangeList().indexOf(countersRangeInSector);
+                    break;
+                }
+            }
+        }
+
+        if (counterSector == null || counterIndex == -1) {
+            throw new NoSuchElementException("Counter does not exist");
+        }
+
+        // Update the CountersRange with the new queue size
+        AssignedInfo assignedInfo =
+                new AssignedInfo(
+                        countersRange.assignedInfo().orElseThrow().airline(),
+                        countersRange.assignedInfo().orElseThrow().flights(),
+                        newQueueSize);
+        sectors.get(counterSector)
+                .countersRangeList()
+                .set(counterIndex, new CountersRange(range, assignedInfo));
     }
 }
