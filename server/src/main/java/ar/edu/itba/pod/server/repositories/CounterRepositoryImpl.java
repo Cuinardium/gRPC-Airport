@@ -11,7 +11,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class CounterRepositoryImpl implements CounterRepository {
 
     int lastCounter = 0;
-    private final Map<String, Queue<Assignment>> assigmentQueue = new HashMap<>();
+    private final Map<String, Queue<Assignment>> assignmentQueue = new HashMap<>();
     private final Map<String, TreeSet<CountersRange>> sectorCounters = new HashMap<>();
     private final Set<String> assignedFlights = new HashSet<>();
     private final Map<Range, Queue<String>> passengerCounters = new HashMap<>();
@@ -112,10 +112,10 @@ public class CounterRepositoryImpl implements CounterRepository {
             assignmentQueueLock.writeLock().lock();
         }
         try {
-            if (!assigmentQueue.containsKey(sectorName)) {
+            if (!assignmentQueue.containsKey(sectorName)) {
                 return;
             }
-            Queue<Assignment> assignments = assigmentQueue.get(sectorName);
+            Queue<Assignment> assignments = assignmentQueue.get(sectorName);
             if (assignments.isEmpty()) {
                 return;
             }
@@ -241,7 +241,7 @@ public class CounterRepositoryImpl implements CounterRepository {
     private boolean isQueued(String sectorName, Assignment assignment) {
         assignmentQueueLock.readLock().lock();
         try {
-            Queue<Assignment> queue = assigmentQueue.get(sectorName);
+            Queue<Assignment> queue = assignmentQueue.get(sectorName);
             if (queue == null || !queue.contains(assignment)) {
                 return false;
             }
@@ -331,8 +331,8 @@ public class CounterRepositoryImpl implements CounterRepository {
     private int addAssignmentToQueue(String sectorName, Assignment counterAssignment) {
         assignmentQueueLock.writeLock().lock();
         try {
-            assigmentQueue.putIfAbsent(sectorName, new LinkedList<>());
-            Queue<Assignment> queue = assigmentQueue.get(sectorName);
+            assignmentQueue.putIfAbsent(sectorName, new LinkedList<>());
+            Queue<Assignment> queue = assignmentQueue.get(sectorName);
             int pending = queue.size();
             queue.add(counterAssignment);
             return pending;
@@ -418,7 +418,7 @@ public class CounterRepositoryImpl implements CounterRepository {
     public Queue<Assignment> getQueuedAssignments(String sector) {
         assignedFlightsLock.readLock().lock();
         try {
-            return assigmentQueue.getOrDefault(sector, new LinkedList<>());
+            return assignmentQueue.getOrDefault(sector, new LinkedList<>());
         } finally {
             assignedFlightsLock.readLock().unlock();
         }
