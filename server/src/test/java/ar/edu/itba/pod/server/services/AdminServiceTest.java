@@ -8,6 +8,7 @@ import ar.edu.itba.pod.grpc.admin.AddSectorRequest;
 import ar.edu.itba.pod.grpc.admin.AdminServiceGrpc;
 import ar.edu.itba.pod.grpc.common.CounterRange;
 import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
+import ar.edu.itba.pod.server.exceptions.FlightBelongsToOtherAirlineException;
 import ar.edu.itba.pod.server.models.Passenger;
 import ar.edu.itba.pod.server.models.Range;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
@@ -224,7 +225,7 @@ public class AdminServiceTest {
     }
 
     @Test
-    public void testAddPassengerAlreadyExists() throws AlreadyExistsException {
+    public void testAddPassengerAlreadyExists() throws AlreadyExistsException, FlightBelongsToOtherAirlineException {
         doThrow(AlreadyExistsException.class).when(passengerRepository).addPassenger(passenger);
 
         StatusRuntimeException exception =
@@ -244,7 +245,29 @@ public class AdminServiceTest {
     }
 
     @Test
-    public void testAddPassengerSuccess() throws AlreadyExistsException {
+    public void testAddPassengerFlightBelongsToOtherAirline() throws AlreadyExistsException, FlightBelongsToOtherAirlineException {
+        Passenger passenger2 = new Passenger("777777", "AR1234", "LATAM");
+        doThrow(FlightBelongsToOtherAirlineException.class).when(passengerRepository).addPassenger(passenger2);
+
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.addPassenger(
+                                        AddPassengerRequest.newBuilder()
+                                                .setBooking(passenger2.booking())
+                                                .setAirline(passenger2.airline())
+                                                .setFlight(passenger2.flight())
+                                                .build()));
+
+        Assertions.assertEquals(Status.PERMISSION_DENIED.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals(
+                "Flight belongs to another airline", exception.getStatus().getDescription());
+    }
+
+
+    @Test
+    public void testAddPassengerSuccess() throws AlreadyExistsException, FlightBelongsToOtherAirlineException {
         doNothing().when(passengerRepository).addPassenger(passenger);
 
         Assertions.assertDoesNotThrow(

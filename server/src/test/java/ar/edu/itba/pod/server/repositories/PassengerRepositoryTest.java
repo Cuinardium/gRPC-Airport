@@ -1,6 +1,7 @@
 package ar.edu.itba.pod.server.repositories;
 
 import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
+import ar.edu.itba.pod.server.exceptions.FlightBelongsToOtherAirlineException;
 import ar.edu.itba.pod.server.models.Passenger;
 import ar.edu.itba.pod.server.repositories.PassengerRepository;
 import ar.edu.itba.pod.server.repositories.PassengerRepositoryImpl;
@@ -34,7 +35,7 @@ public class PassengerRepositoryTest {
     }
 
     @Test
-    public void addPassengers() throws AlreadyExistsException {
+    public void addPassengers() throws AlreadyExistsException, FlightBelongsToOtherAirlineException {
         for (Passenger passenger : passengers) {
             passengerRepository.addPassenger(passenger);
         }
@@ -49,7 +50,7 @@ public class PassengerRepositoryTest {
     }
 
     @Test
-    public void addPassengerAlreadyExists() throws AlreadyExistsException {
+    public void addPassengerAlreadyExists() throws AlreadyExistsException, FlightBelongsToOtherAirlineException {
         Passenger passenger = passengers.get(0);
         passengerRepository.addPassenger(passenger);
 
@@ -58,7 +59,17 @@ public class PassengerRepositoryTest {
     }
 
     @Test
-    public void hasAirlineTrue() throws AlreadyExistsException {
+    public void addPassengerFlightBelongsToOtherAirline() throws AlreadyExistsException, FlightBelongsToOtherAirlineException {
+        Passenger passenger = passengers.get(0);
+        passengerRepository.addPassenger(passenger);
+
+        Passenger passenger2 = new Passenger("777777", "AR1234", "LATAM");
+        Assertions.assertThrows(
+                FlightBelongsToOtherAirlineException.class, () -> passengerRepository.addPassenger(passenger2));
+    }
+
+    @Test
+    public void hasAirlineTrue() throws AlreadyExistsException, FlightBelongsToOtherAirlineException {
         for (Passenger passenger : passengers) {
             passengerRepository.addPassenger(passenger);
         }
@@ -69,7 +80,7 @@ public class PassengerRepositoryTest {
     }
 
     @Test
-    public void hasAirlineFalse() throws AlreadyExistsException {
+    public void hasAirlineFalse() throws AlreadyExistsException, FlightBelongsToOtherAirlineException {
         for (Passenger passenger : passengers) {
             passengerRepository.addPassenger(passenger);
         }
@@ -78,7 +89,7 @@ public class PassengerRepositoryTest {
     }
 
     @Test
-    public void hasPassengerTrue() throws AlreadyExistsException {
+    public void hasPassengerTrue() throws AlreadyExistsException, FlightBelongsToOtherAirlineException {
         for (Passenger passenger : passengers) {
             passengerRepository.addPassenger(passenger);
         }
@@ -89,7 +100,7 @@ public class PassengerRepositoryTest {
     }
 
     @Test
-    public void hasPassengerFalse() throws AlreadyExistsException {
+    public void hasPassengerFalse() throws AlreadyExistsException, FlightBelongsToOtherAirlineException {
         for (Passenger passenger : passengers) {
             passengerRepository.addPassenger(passenger);
         }

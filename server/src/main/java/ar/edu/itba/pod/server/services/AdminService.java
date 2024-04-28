@@ -3,6 +3,7 @@ package ar.edu.itba.pod.server.services;
 import ar.edu.itba.pod.grpc.admin.*;
 import ar.edu.itba.pod.grpc.common.CounterRange;
 import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
+import ar.edu.itba.pod.server.exceptions.FlightBelongsToOtherAirlineException;
 import ar.edu.itba.pod.server.models.Passenger;
 import ar.edu.itba.pod.server.models.Range;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
@@ -161,6 +162,17 @@ public class AdminService extends AdminServiceGrpc.AdminServiceImplBase {
             logger.debug(
                     "(adminService/addPassenger) request failed: passenger {} already exists",
                     passenger);
+
+            return;
+        } catch (FlightBelongsToOtherAirlineException e) {
+            responseObserver.onError(
+                    Status.PERMISSION_DENIED
+                            .withDescription("Flight belongs to another airline")
+                            .asRuntimeException());
+
+            logger.debug(
+                    "(adminService/addPassenger) request failed: flight {} belongs to another airline",
+                    passenger.flight());
 
             return;
         }

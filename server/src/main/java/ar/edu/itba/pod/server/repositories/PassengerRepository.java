@@ -1,6 +1,7 @@
 package ar.edu.itba.pod.server.repositories;
 
 import ar.edu.itba.pod.server.exceptions.AlreadyExistsException;
+import ar.edu.itba.pod.server.exceptions.FlightBelongsToOtherAirlineException;
 import ar.edu.itba.pod.server.models.Passenger;
 
 import java.util.List;
@@ -14,5 +15,5 @@ public interface PassengerRepository {
     Optional<Passenger> getPassenger(String booking);
     List<Passenger> getPassengers();
 
-    void addPassenger(Passenger passenger) throws AlreadyExistsException;
+    void addPassenger(Passenger passenger) throws AlreadyExistsException, FlightBelongsToOtherAirlineException;
 }
