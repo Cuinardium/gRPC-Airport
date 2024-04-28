@@ -9,6 +9,7 @@ import ar.edu.itba.pod.server.models.CountersRange;
 import ar.edu.itba.pod.server.models.Range;
 import ar.edu.itba.pod.server.models.Sector;
 import ar.edu.itba.pod.server.utils.Pair;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,7 +63,8 @@ public abstract class CounterRepositoryTest<T extends CounterRepository> {
     public void testAddSectorAlreadyExists() throws AlreadyExistsException {
         counterRepository.addSector("D");
 
-        Assertions.assertThrows(AlreadyExistsException.class, () -> counterRepository.addSector("D"));
+        Assertions.assertThrows(
+                AlreadyExistsException.class, () -> counterRepository.addSector("D"));
     }
 
     // ---- Counters
@@ -106,12 +108,17 @@ public abstract class CounterRepositoryTest<T extends CounterRepository> {
 
     @Test
     public void testAddCountersNoSector() {
-        Assertions.assertThrows(NoSuchElementException.class, () -> counterRepository.addCounters("D", 5));
+        Assertions.assertThrows(
+                NoSuchElementException.class, () -> counterRepository.addCounters("D", 5));
     }
 
     // ---- Assignments
     @Test
-    public void testAssignCounterAssignment() throws AlreadyExistsException, FlightAlreadyCheckedInException, FlightAlreadyAssignedException, FlightAlreadyQueuedException {
+    public void testAssignCounterAssignment()
+            throws AlreadyExistsException,
+                    FlightAlreadyCheckedInException,
+                    FlightAlreadyAssignedException,
+                    FlightAlreadyQueuedException {
         counterRepository.addSector("D");
         counterRepository.addSector("C");
 
@@ -141,13 +148,13 @@ public abstract class CounterRepositoryTest<T extends CounterRepository> {
             Assertions.assertEquals(1, countersRange.get().range().from());
             Assertions.assertEquals(2, countersRange.get().range().to());
 
-            Optional<Pair<CountersRange, String>> countersRangeAndSector = counterRepository.getFlightCountersAndSector(flight);
+            Optional<Pair<CountersRange, String>> countersRangeAndSector =
+                    counterRepository.getFlightCountersAndSector(flight);
             Assertions.assertTrue(countersRangeAndSector.isPresent());
             Assertions.assertEquals(1, countersRangeAndSector.get().first().range().from());
             Assertions.assertEquals(2, countersRangeAndSector.get().first().range().to());
             Assertions.assertEquals("D", countersRangeAndSector.get().second());
         }
-
 
         // Should assign counters from 6 to 7
         flights = List.of("AA125", "AA126");
@@ -167,7 +174,8 @@ public abstract class CounterRepositoryTest<T extends CounterRepository> {
             Assertions.assertEquals(6, countersRange.get().range().from());
             Assertions.assertEquals(7, countersRange.get().range().to());
 
-            Optional<Pair<CountersRange, String>> countersRangeAndSector = counterRepository.getFlightCountersAndSector(flight);
+            Optional<Pair<CountersRange, String>> countersRangeAndSector =
+                    counterRepository.getFlightCountersAndSector(flight);
             Assertions.assertTrue(countersRangeAndSector.isPresent());
             Assertions.assertEquals(6, countersRangeAndSector.get().first().range().from());
             Assertions.assertEquals(7, countersRangeAndSector.get().first().range().to());
@@ -189,7 +197,8 @@ public abstract class CounterRepositoryTest<T extends CounterRepository> {
         Assertions.assertEquals(3, countersRange.get().range().from());
         Assertions.assertEquals(5, countersRange.get().range().to());
 
-        Optional<Pair<CountersRange, String>> countersRangeAndSector = counterRepository.getFlightCountersAndSector("AA127");
+        Optional<Pair<CountersRange, String>> countersRangeAndSector =
+                counterRepository.getFlightCountersAndSector("AA127");
         Assertions.assertTrue(countersRangeAndSector.isPresent());
         Assertions.assertEquals(3, countersRangeAndSector.get().first().range().from());
         Assertions.assertEquals(5, countersRangeAndSector.get().first().range().to());
@@ -250,16 +259,23 @@ public abstract class CounterRepositoryTest<T extends CounterRepository> {
         Assertions.assertEquals(7, sectorC.countersRangeList().get(0).range().to());
 
         Assertions.assertTrue(sectorC.countersRangeList().get(0).assignedInfo().isPresent());
-        Assertions.assertEquals("AmericanAirlines", sectorC.countersRangeList().get(0).assignedInfo().get().airline());
-        Assertions.assertEquals(List.of("AA125", "AA126"), sectorC.countersRangeList().get(0).assignedInfo().get().flights());
+        Assertions.assertEquals(
+                "AmericanAirlines",
+                sectorC.countersRangeList().get(0).assignedInfo().get().airline());
+        Assertions.assertEquals(
+                List.of("AA125", "AA126"),
+                sectorC.countersRangeList().get(0).assignedInfo().get().flights());
 
         Assertions.assertEquals(8, sectorC.countersRangeList().get(1).range().from());
         Assertions.assertEquals(8, sectorC.countersRangeList().get(1).range().to());
 
         Assertions.assertTrue(sectorC.countersRangeList().get(1).assignedInfo().isPresent());
-        Assertions.assertEquals("AmericanAirlines", sectorC.countersRangeList().get(1).assignedInfo().get().airline());
-        Assertions.assertEquals(List.of("AA128"), sectorC.countersRangeList().get(1).assignedInfo().get().flights());
-
+        Assertions.assertEquals(
+                "AmericanAirlines",
+                sectorC.countersRangeList().get(1).assignedInfo().get().airline());
+        Assertions.assertEquals(
+                List.of("AA128"),
+                sectorC.countersRangeList().get(1).assignedInfo().get().flights());
 
         Sector sectorD = sectors.get(1);
         Assertions.assertEquals("D", sectorD.sectorName());
@@ -270,22 +286,96 @@ public abstract class CounterRepositoryTest<T extends CounterRepository> {
         Assertions.assertEquals(2, sectorD.countersRangeList().get(0).range().to());
 
         Assertions.assertTrue(sectorD.countersRangeList().get(0).assignedInfo().isPresent());
-        Assertions.assertEquals("AmericanAirlines", sectorD.countersRangeList().get(0).assignedInfo().get().airline());
-        Assertions.assertEquals(List.of("AA123", "AA124"), sectorD.countersRangeList().get(0).assignedInfo().get().flights());
+        Assertions.assertEquals(
+                "AmericanAirlines",
+                sectorD.countersRangeList().get(0).assignedInfo().get().airline());
+        Assertions.assertEquals(
+                List.of("AA123", "AA124"),
+                sectorD.countersRangeList().get(0).assignedInfo().get().flights());
 
         Assertions.assertEquals(3, sectorD.countersRangeList().get(1).range().from());
         Assertions.assertEquals(5, sectorD.countersRangeList().get(1).range().to());
 
         Assertions.assertTrue(sectorD.countersRangeList().get(1).assignedInfo().isPresent());
-        Assertions.assertEquals("AmericanAirlines", sectorD.countersRangeList().get(1).assignedInfo().get().airline());
-        Assertions.assertEquals(List.of("AA127"), sectorD.countersRangeList().get(1).assignedInfo().get().flights());
+        Assertions.assertEquals(
+                "AmericanAirlines",
+                sectorD.countersRangeList().get(1).assignedInfo().get().airline());
+        Assertions.assertEquals(
+                List.of("AA127"),
+                sectorD.countersRangeList().get(1).assignedInfo().get().flights());
 
         Assertions.assertEquals(9, sectorD.countersRangeList().get(2).range().from());
         Assertions.assertEquals(11, sectorD.countersRangeList().get(2).range().to());
 
         Assertions.assertTrue(sectorD.countersRangeList().get(2).assignedInfo().isPresent());
-        Assertions.assertEquals("AmericanAirlines", sectorD.countersRangeList().get(2).assignedInfo().get().airline());
-        Assertions.assertEquals(List.of("AA129"), sectorD.countersRangeList().get(2).assignedInfo().get().flights());
+        Assertions.assertEquals(
+                "AmericanAirlines",
+                sectorD.countersRangeList().get(2).assignedInfo().get().airline());
+        Assertions.assertEquals(
+                List.of("AA129"),
+                sectorD.countersRangeList().get(2).assignedInfo().get().flights());
     }
 
+    @Test
+    public void testAssignCounterAssignmentFlightAlreadyAssigned()
+            throws AlreadyExistsException,
+                    FlightAlreadyCheckedInException,
+                    FlightAlreadyAssignedException,
+                    FlightAlreadyQueuedException {
+        counterRepository.addSector("D");
+
+        counterRepository.addCounters("D", 5);
+
+        // Should assign counters from 1 to 2
+        List<String> flights = List.of("AA123", "AA124");
+        Assignment assignmentD1 = new Assignment("AmericanAirlines", flights, 2);
+        counterRepository.assignCounterAssignment("D", assignmentD1);
+
+        // Should assign counters from 3 to 5
+        Assignment assignmentD2 = new Assignment("AmericanAirlines", List.of("AA127"), 3);
+        counterRepository.assignCounterAssignment("D", assignmentD2);
+
+        // Both flights are already assigned
+        Assertions.assertThrows(
+                FlightAlreadyAssignedException.class,
+                () -> counterRepository.assignCounterAssignment("D", assignmentD1));
+        // One of the flights is already assigned other is not
+        Assertions.assertThrows(
+                FlightAlreadyAssignedException.class,
+                () ->
+                        counterRepository.assignCounterAssignment(
+                                "D",
+                                new Assignment("AmericanAirlines", List.of("AA123", "AA128"), 2)));
+    }
+
+    @Test
+    public void testAssignCountersAddToAssignmentQueue() throws FlightAlreadyCheckedInException, FlightAlreadyAssignedException, FlightAlreadyQueuedException, AlreadyExistsException {
+        counterRepository.addSector("D");
+
+        counterRepository.addCounters("D", 5);
+
+        // Should assign counters from 1 to 2
+        List<String> flights = List.of("AA123", "AA124");
+        Assignment assignmentD1 = new Assignment("AmericanAirlines", flights, 2);
+        counterRepository.assignCounterAssignment("D", assignmentD1);
+
+        // Should assign counters from 3 to 5
+        Assignment assignmentD2 = new Assignment("AmericanAirlines", List.of("AA127"), 3);
+        counterRepository.assignCounterAssignment("D", assignmentD2);
+
+        // Should add to the queue
+        Assignment assignmentD3 = new Assignment("AmericanAirlines", List.of("AA128"), 2);
+        Pair<Range, Integer> result =
+                counterRepository.assignCounterAssignment("D", assignmentD3);
+
+        // Validate the result
+        Assertions.assertEquals(1, result.second());
+        Assertions.assertEquals(0, result.first().from());
+        Assertions.assertEquals(0, result.first().to());
+
+        // Check the queue
+        List<Assignment> queue = counterRepository.getQueuedAssignments("D").stream().toList();
+        Assertions.assertEquals(1, queue.size());
+        Assertions.assertEquals(assignmentD3, queue.get(0));
+    }
 }

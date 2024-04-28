@@ -244,8 +244,29 @@ public class CounterRepositorySynchronized implements CounterRepository {
             }
         }
 
+        // Remove the counter from the list and add a new CountersRange with the same range
+        // Non assigned counters must be merged
+
+        int index = counters.indexOf(toFreeCounter);
         counters.remove(toFreeCounter);
-        counters.add(new CountersRange(toFreeCounter.range()));
+
+        boolean shouldMergeWithPrevious =  index > 0 && counters.get(index - 1).assignedInfo().isEmpty();
+        boolean shouldMergeWithNext = index < counters.size() && counters.get(index).assignedInfo().isEmpty();
+
+        if (shouldMergeWithPrevious && shouldMergeWithNext) {
+            CountersRange previous = counters.get(index - 1);
+            CountersRange next = counters.get(index);
+            counters.remove(index);
+            counters.set(index - 1, new CountersRange(new Range(previous.range().from(), next.range().to())));
+        } else if (shouldMergeWithPrevious) {
+            CountersRange previous = counters.get(index - 1);
+            counters.set(index - 1, new CountersRange(new Range(previous.range().from(), toFreeCounter.range().to())));
+        } else if (shouldMergeWithNext) {
+            CountersRange next = counters.get(index);
+            counters.set(index, new CountersRange(new Range(toFreeCounter.range().from(), next.range().to())));
+        } else {
+            counters.add(index, new CountersRange(toFreeCounter.range()));
+        }
 
         tryPendingAssignments(sector);
 
