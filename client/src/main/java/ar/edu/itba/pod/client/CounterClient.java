@@ -209,7 +209,7 @@ public class CounterClient {
                     System.out.println("Check-in successful of " + booking + " for flight " + flight + " at counter " + counter);
                 }
                 for (int i = 1; i <= idleCounterCount; i++) {
-                    System.out.println("Counter " + counter + i + " is idle");
+                    System.out.println("Counter " + (counter + i) + " is idle");
                 }
                 break;
 
