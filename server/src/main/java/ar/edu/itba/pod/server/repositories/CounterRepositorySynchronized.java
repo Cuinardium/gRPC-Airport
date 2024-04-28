@@ -410,10 +410,10 @@ public class CounterRepositorySynchronized implements CounterRepository {
                 break;
             }
 
-            assignInfoToAvailableCounterRange(assignment, sector, maybeAvailableCounterRange.get());
+            Range assignedRange = assignInfoToAvailableCounterRange(assignment, sector, maybeAvailableCounterRange.get());
             assignments.poll();
 
-            assignment.getOnAssigned().accept(maybeAvailableCounterRange.get().range());
+            assignment.getOnAssigned().accept(assignedRange);
 
             int pendingAhead = 0;
 
