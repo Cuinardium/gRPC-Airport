@@ -292,7 +292,12 @@ public class CounterRepositorySynchronized implements CounterRepository {
 
     @Override
     public int addPassengerToQueue(Range counterRange, String booking)
-            throws AlreadyExistsException {
+            throws AlreadyExistsException, NoSuchElementException {
+
+        if (!passengersInCounters.containsKey(counterRange)) {
+            throw new NoSuchElementException("Counter does not exist");
+        }
+
         if (hasPassengerInCounter(counterRange, booking)) {
             throw new AlreadyExistsException("Passenger already in queue");
         }

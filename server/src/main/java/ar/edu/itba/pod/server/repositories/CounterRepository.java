@@ -32,6 +32,6 @@ public interface CounterRepository {
 
     // ----- Queues - Passengers -----
     boolean hasPassengerInCounter(Range counterRange, String booking);
-    int addPassengerToQueue(Range counterRange, String booking) throws AlreadyExistsException;
+    int addPassengerToQueue(Range counterRange, String booking) throws AlreadyExistsException, NoSuchElementException;
     List<Optional<String>> checkinCounters(String sector, int counterFrom, String airline) throws NoSuchElementException, UnauthorizedException;
 }
