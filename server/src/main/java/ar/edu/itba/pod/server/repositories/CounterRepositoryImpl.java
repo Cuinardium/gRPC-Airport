@@ -119,7 +119,8 @@ public class CounterRepositoryImpl implements CounterRepository {
             if (assignments.isEmpty()) {
                 return;
             }
-            for(int i = 0; i < assignments.size(); i++){
+            int assignmentsSize = assignments.size();
+            for(int i = 0; i < assignmentsSize; i++){
                 Assignment assignment = assignments.peek();
                 TreeSet<CountersRange> set = sectorCounters.get(sectorName);
                 Optional<CountersRange> maybeFreeCounterRange =
@@ -136,8 +137,12 @@ public class CounterRepositoryImpl implements CounterRepository {
                 newlyAssignedFlights.addAll(assignment.flights());
                 assignments.poll();
                 assignment.getOnAssigned().accept(maybeFreeCounterRange.get().range());
+
+                int pendingAhead = 0;
+
                 for(Assignment pendingAssignment : assignments) {
-                    pendingAssignment.getOnMoved().accept(assignments.size());
+                    pendingAssignment.getOnMoved().accept(pendingAhead);
+                    pendingAhead++;
                 }
             }
         } finally {

@@ -392,7 +392,8 @@ public class CounterRepositorySynchronized implements CounterRepository {
         }
 
 
-        for(int i = 0; i < assignments.size(); i++){
+        int assignmentsSize = assignments.size();
+        for(int i = 0; i < assignmentsSize; i++){
             Assignment assignment = assignments.peek();
             Sector sector = sectors.get(sectorName);
             Optional<CountersRange> maybeAvailableCounterRange =
@@ -400,7 +401,7 @@ public class CounterRepositorySynchronized implements CounterRepository {
                             .filter(
                                     range ->
                                             range.assignedInfo().isEmpty()
-                                                    && (range.range().to() - range.range().from())
+                                                    && (range.range().to() + 1 - range.range().from())
                                                     >= assignment.counterCount())
                             .findFirst();
 
@@ -411,6 +412,15 @@ public class CounterRepositorySynchronized implements CounterRepository {
 
             assignInfoToAvailableCounterRange(assignment, sector, maybeAvailableCounterRange.get());
             assignments.poll();
+
+            assignment.getOnAssigned().accept(maybeAvailableCounterRange.get().range());
+
+            int pendingAhead = 0;
+
+            for(Assignment pendingAssignment : assignments) {
+                pendingAssignment.getOnMoved().accept(pendingAhead);
+                pendingAhead++;
+            }
         }
     }
 
