@@ -135,6 +135,10 @@ public class CounterRepositoryImpl implements CounterRepository {
                 assignInfoToAvailableCounterRange(assignment, maybeFreeCounterRange.get(), set);
                 newlyAssignedFlights.addAll(assignment.flights());
                 assignments.poll();
+                assignment.onAssigned();
+                for(Assignment pendingAssignment : assignments) {
+                    pendingAssignment.onMoved();
+                }
             }
         } finally {
             assignmentQueueLock.writeLock().unlock();
