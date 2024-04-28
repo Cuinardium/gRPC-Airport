@@ -1,6 +1,5 @@
 package ar.edu.itba.pod.server.repositories;
 
-import ar.edu.itba.pod.grpc.common.CounterRange;
 import ar.edu.itba.pod.server.exceptions.*;
 import ar.edu.itba.pod.server.models.*;
 import ar.edu.itba.pod.server.utils.Pair;
@@ -175,11 +174,11 @@ public class CounterRepositoryImpl implements CounterRepository {
             }
             set.add(newRange);
             lastCounter = lastCounter + counterCount;
-            tryPendingAssignments(sector);
-            return new Range(lastCounter - counterCount + 1, lastCounter);
         } finally {
             sectorCountersLock.writeLock().unlock();
         }
+        tryPendingAssignments(sector);
+        return new Range(lastCounter - counterCount + 1, lastCounter);
     }
 
     @Override
@@ -342,13 +341,62 @@ public class CounterRepositoryImpl implements CounterRepository {
     }
 
     @Override
-    public CountersRange freeCounters(String sector, int counterFrom, String airline) throws NoSuchElementException, HasPendingPassengersException {
+    public CountersRange freeCounters(String sectorName, int counterFrom, String airline) throws NoSuchElementException, HasPendingPassengersException {
+        if(!hasSector(sectorName)) {
+            throw new NoSuchElementException("Sector does not exist");
+        }
+        sectorCountersLock.writeLock().lock();
+        try {
+            Set<CountersRange> set = sectorCounters.get(sectorName);
+            Optional<CountersRange> maybeToFreeCounterRange =
+                    set.stream().filter(
+                            range -> range.range().from() == counterFrom && range.assignedInfo().isPresent() && range.assignedInfo().get().airline().equals(airline)
+                    ).findFirst();
+            if(maybeToFreeCounterRange.isEmpty()) {
+                throw new NoSuchElementException("Counter does not exist or not assigned");
+            }
+
+            // TODO: pending passengers
+
+            CountersRange toFree = maybeToFreeCounterRange.get();
+
+            set.remove(toFree);
+            int newFrom = toFree.range().from();
+            int newTo = toFree.range().to();
+
+            Optional<CountersRange> maybeBefore =
+                    set.stream().filter(
+                            range -> range.range().to() == (toFree.range().from() - 1) && range.assignedInfo().isEmpty()
+                    ).findFirst();
+            Optional<CountersRange> maybeAfter =
+                    set.stream().filter(
+                            range -> range.range().from() == (toFree.range().to() + 1) && range.assignedInfo().isEmpty()
+                    ).findFirst();
+            if(maybeBefore.isPresent()) {
+                set.remove(maybeBefore.get());
+                newFrom = maybeBefore.get().range().from();
+            }
+            if(maybeAfter.isPresent()) {
+                set.remove(maybeAfter.get());
+                newTo = maybeAfter.get().range().to();
+            }
+            set.add(new CountersRange(new Range(newFrom, newTo)));
+
+        } finally {
+            sectorCountersLock.writeLock().unlock();
+        }
+        tryPendingAssignments(sectorName);
         return null;
     }
 
     @Override
     public Queue<Assignment> getQueuedAssignments(String sector) {
-        return null;
+        assignedFlightsLock.readLock().lock();
+        try {
+            return assigmentQueue.getOrDefault(sector, new LinkedList<>());
+        } finally {
+            assignedFlightsLock.readLock().unlock();
+        }
     }
 
     @Override
