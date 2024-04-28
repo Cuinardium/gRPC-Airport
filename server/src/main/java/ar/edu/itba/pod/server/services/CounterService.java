@@ -19,6 +19,9 @@ import io.grpc.stub.StreamObserver;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static ar.edu.itba.pod.grpc.events.EventType.EVENT_TYPE_COUNTERS_ASSIGNED;
+import static ar.edu.itba.pod.grpc.events.EventType.EVENT_TYPE_MOVED_IN_ASSIGNATION_QUEUE;
+
 public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
 
     private final CounterRepository counterRepository;
@@ -327,7 +330,42 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
                     new Assignment(
                             counterAssignment.getAirline(),
                             counterAssignment.getFlightsList(),
-                            counterAssignment.getCounterCount());
+                            counterAssignment.getCounterCount(),
+                            (pending) -> {
+                                MovedInAssignationQueueInfo movedInAssignationQueueInfo = MovedInAssignationQueueInfo
+                                        .newBuilder()
+                                        .setSectorName(sectorName)
+                                        .addAllFlights(counterAssignment.getFlightsList())
+                                        .setCounterCount(counterAssignment.getCounterCount())
+                                        .setPendingAssignations(pending)
+                                        .build();
+                                RegisterResponse response = RegisterResponse
+                                        .newBuilder()
+                                        .setEventType(EVENT_TYPE_MOVED_IN_ASSIGNATION_QUEUE)
+                                        .setMovedInAssignationQueueInfo(movedInAssignationQueueInfo)
+                                        .build();
+                                eventManager.notify(counterAssignment.getAirline(), response);
+                                },
+                            (range) -> {
+                                CounterRange counterRange = CounterRange
+                                        .newBuilder()
+                                        .setFrom(range.from())
+                                        .setTo(range.to())
+                                        .build();
+                                CountersAssignedInfo countersAssignedInfo = CountersAssignedInfo
+                                        .newBuilder()
+                                        .setSectorName(sectorName)
+                                        .addAllFlights(counterAssignment.getFlightsList())
+                                        .setCounters(counterRange)
+                                        .build();
+                                RegisterResponse response = RegisterResponse
+                                        .newBuilder()
+                                        .setEventType(EVENT_TYPE_COUNTERS_ASSIGNED)
+                                        .setCountersAssignedInfo(countersAssignedInfo)
+                                        .build();
+                                eventManager.notify(counterAssignment.getAirline(), response);
+                            }
+                    );
             assignedCounterRangeOrQueuedAssignments =
                     counterRepository.assignCounterAssignment(sectorName, assignment);
         } catch (NoSuchElementException e) {
@@ -375,7 +413,7 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
                                     .build());
 
             assignationEventBuilder
-                    .setEventType(EventType.EVENT_TYPE_COUNTERS_ASSIGNED)
+                    .setEventType(EVENT_TYPE_COUNTERS_ASSIGNED)
                     .setCountersAssignedInfo(
                             CountersAssignedInfo.newBuilder()
                                     .setSectorName(sectorName)
