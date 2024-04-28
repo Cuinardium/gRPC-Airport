@@ -1,4 +1,6 @@
-package ar.edu.itba.pod.server.repositories;
+package ar.edu.itba.pod.server.repositories.counterRepository;
+
+import ar.edu.itba.pod.server.repositories.CounterRepositorySynchronized;
 
 public class CounterRepositorySynchronizedTest extends CounterRepositoryTest<CounterRepositorySynchronized> {
 
