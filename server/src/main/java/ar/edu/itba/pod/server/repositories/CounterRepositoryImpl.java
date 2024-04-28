@@ -12,7 +12,7 @@ public class CounterRepositoryImpl implements CounterRepository {
 
     int lastCounter = 0;
     private final Map<String, Queue<Assignment>> assigmentQueue = new HashMap<>();
-    private final Map<String, Set<CountersRange>> sectorCounters = new HashMap<>();
+    private final Map<String, TreeSet<CountersRange>> sectorCounters = new HashMap<>();
     private final Set<String> assignedFlights = new HashSet<>();
     private final Map<Range, Queue<String>> passengerCounters = new HashMap<>();
 
@@ -33,7 +33,7 @@ public class CounterRepositoryImpl implements CounterRepository {
         }
         sectorCountersLock.writeLock().lock();
         try {
-            sectorCounters.put(sector, new HashSet<>());
+            sectorCounters.put(sector, new TreeSet<>());
         } finally {
             sectorCountersLock.writeLock().unlock();
         }
@@ -77,7 +77,7 @@ public class CounterRepositoryImpl implements CounterRepository {
         return result;
     }
 
-    private Range assignInfoToAvailableCounterRange(Assignment counterAssignment, CountersRange freeRange, Set<CountersRange> set) {
+    private Range assignInfoToAvailableCounterRange(Assignment counterAssignment, CountersRange freeRange, TreeSet<CountersRange> set) {
         int assignedFrom = freeRange.range().from();
         int assignedTo = assignedFrom + counterAssignment.counterCount() - 1;
 
@@ -121,7 +121,7 @@ public class CounterRepositoryImpl implements CounterRepository {
             }
             for(int i = 0; i < assignments.size(); i++){
                 Assignment assignment = assignments.peek();
-                Set<CountersRange> set = sectorCounters.get(sectorName);
+                TreeSet<CountersRange> set = sectorCounters.get(sectorName);
                 Optional<CountersRange> maybeFreeCounterRange =
                         set.stream().filter(
                                 range -> range.assignedInfo().isEmpty() && (range.range().to() - range.range().from() + 1) >= assignment.counterCount()
@@ -161,7 +161,7 @@ public class CounterRepositoryImpl implements CounterRepository {
         }
         sectorCountersLock.writeLock().lock();
         try {
-            Set<CountersRange> set = sectorCounters.get(sector);
+            TreeSet<CountersRange> set = sectorCounters.get(sector);
             CountersRange newRange;
             Optional<CountersRange> maybeLastCounter = set.stream().filter(range -> range.range().to() == lastCounter).findFirst();
             // si no es el ultimo o si tiene assignedInfo
@@ -186,7 +186,7 @@ public class CounterRepositoryImpl implements CounterRepository {
     public boolean hasCounters() {
         sectorCountersLock.readLock().lock();
         try {
-            for(Set<CountersRange> counterRanges : sectorCounters.values()) {
+            for(TreeSet<CountersRange> counterRanges : sectorCounters.values()) {
                 if(!counterRanges.isEmpty()) {
                     return true;
                 }
@@ -201,7 +201,7 @@ public class CounterRepositoryImpl implements CounterRepository {
     public Optional<CountersRange> getFlightCounters(String flight) {
         sectorCountersLock.readLock().lock();
         try {
-            for (Set<CountersRange> set : sectorCounters.values()) {
+            for (TreeSet<CountersRange> set : sectorCounters.values()) {
                 for (CountersRange range : set) {
                     if (range.assignedInfo().isPresent()
                             && range.assignedInfo().get().flights().contains(flight)) {
@@ -219,7 +219,7 @@ public class CounterRepositoryImpl implements CounterRepository {
     public Optional<Pair<CountersRange, String>> getFlightCountersAndSector(String flight) {
         sectorCountersLock.readLock().lock();
         try {
-            for(Map.Entry<String, Set<CountersRange>> entry : sectorCounters.entrySet()) {
+            for(Map.Entry<String, TreeSet<CountersRange>> entry : sectorCounters.entrySet()) {
                 for (CountersRange range : entry.getValue()) {
                     if (range.assignedInfo().isPresent()
                             && range.assignedInfo().get().flights().contains(flight)) {
@@ -256,7 +256,7 @@ public class CounterRepositoryImpl implements CounterRepository {
         boolean hasFlightAssigned;
         sectorCountersLock.readLock().lock();
         try {
-            Set<CountersRange> set = sectorCounters.get(sectorName);
+            TreeSet<CountersRange> set = sectorCounters.get(sectorName);
 
             // Check if there is a flight from the CounterAssignment
             // that is already assigned to an existing CountersRange
@@ -297,7 +297,7 @@ public class CounterRepositoryImpl implements CounterRepository {
         }
         Range range;
         try {
-            Set<CountersRange> set = sectorCounters.get(sectorName);
+            TreeSet<CountersRange> set = sectorCounters.get(sectorName);
             Optional<CountersRange> maybeFreeCounterRange =
                     set.stream().filter(
                             r -> r.assignedInfo().isEmpty() && (r.range().to() - r.range().from() + 1) >= counterAssignment.counterCount()
@@ -355,7 +355,7 @@ public class CounterRepositoryImpl implements CounterRepository {
         Optional<CountersRange> maybeToFreeCounterRange;
         sectorCountersLock.readLock().lock();
         try {
-            Set<CountersRange> set = sectorCounters.get(sectorName);
+            TreeSet<CountersRange> set = sectorCounters.get(sectorName);
             maybeToFreeCounterRange =
                     set.stream().filter(
                             range -> range.range().from() == counterFrom && range.assignedInfo().isPresent() && range.assignedInfo().get().airline().equals(airline)
@@ -378,7 +378,7 @@ public class CounterRepositoryImpl implements CounterRepository {
 
         sectorCountersLock.writeLock().lock();
         try {
-            Set<CountersRange> set = sectorCounters.get(sectorName);
+            TreeSet<CountersRange> set = sectorCounters.get(sectorName);
             CountersRange toFree = maybeToFreeCounterRange.get();
 
             set.remove(toFree);
@@ -448,8 +448,8 @@ public class CounterRepositoryImpl implements CounterRepository {
             passengers.add(booking);
 
             CountersRange counterRange = null;
-            Set<CountersRange> set = new HashSet<>();
-            for(Set<CountersRange> setAux : sectorCounters.values()) {
+            TreeSet<CountersRange> set = new TreeSet<>();
+            for(TreeSet<CountersRange> setAux : sectorCounters.values()) {
                 for(CountersRange rangeAux : setAux) {
                     if(rangeAux.range().equals(range)) {
                         counterRange = rangeAux;
@@ -489,7 +489,7 @@ public class CounterRepositoryImpl implements CounterRepository {
             sectorCountersLock.readLock().lock();
         }
         try {
-            Set<CountersRange> set = sectorCounters.get(sector);
+            TreeSet<CountersRange> set = sectorCounters.get(sector);
             Optional<CountersRange> maybeCounter =
                     set.stream().filter(
                             range -> range.range().from() == counterFrom

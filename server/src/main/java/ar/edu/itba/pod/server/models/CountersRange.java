@@ -5,7 +5,7 @@ import ar.edu.itba.pod.grpc.common.CounterRange;
 import java.util.Objects;
 import java.util.Optional;
 
-public final class CountersRange {
+public final class CountersRange implements Comparable<CountersRange> {
     private final Range range;
     private final AssignedInfo assignedInfo;
 
@@ -51,5 +51,16 @@ public final class CountersRange {
                 .setFrom(this.range.from())
                 .setTo(this.range.to())
                 .build();
+    }
+
+    @Override
+    public int compareTo(CountersRange other) {
+        if(this.range.equals(other.range)) {
+            return 0;
+        }
+        if(this.range.from() < other.range.from()) {
+            return -1;
+        }
+        return 1;
     }
 }
