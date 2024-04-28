@@ -16,8 +16,39 @@ Clone the project and execute the following command:
 mvn clean install
 ```
 
+In the directories server/target and client/target there will be .tar.gz extension files. You will have to decompress them.
+You can do it with the following commands:
+```
+tar -xvf server/target/tpe1-g4-server-1.0-SNAPSHOT-bin.tar.gz
+tar -xvf client/target/tpe1-g4-client-1.0-SNAPSHOT-bin.tar.gz
+```
+
+After that, you will need to give execution permissions to the scripts inside the directories created from the compressed files
+
+For the Server:
+```
+cd tpe1-g4-server-1.0-SNAPSHOT
+chmod u+x ./run-server.sh
+```
+
+For the Clients:
+```
+cd tpe1-g4-client-1.0-SNAPSHOT
+chmod u+x ./adminClient.sh
+chmod u+x ./counterClient.sh
+chmod u+x ./eventsClient.sh
+chmod u+x ./passengerClient.sh
+chmod u+x ./queryClient.sh
+```
+
 ## Use
 
+Now everything is ready to use
+
+We can run the server by running the following command:
+```
+    ./run-server.sh
+```
 
 Then we can run the clients in the following ways:
 
