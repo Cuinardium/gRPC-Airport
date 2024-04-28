@@ -197,6 +197,11 @@ public class CounterRepositorySynchronized implements CounterRepository {
         // If there is an available range, assign the flights to it
         if (maybeAvailableCounterRange.isPresent()) {
             Range assignedRange = assignInfoToAvailableCounterRange(counterAssignment, sector, maybeAvailableCounterRange.get());
+
+            // Add queue
+            passengersInCounters.put(assignedRange, new LinkedList<>());
+            assignedFlights.addAll(counterAssignment.flights());
+
             return new Pair<>(assignedRange, 0);
         } else {
             int pendingAhead = addAssignmentToQueue(sectorName, counterAssignment);
