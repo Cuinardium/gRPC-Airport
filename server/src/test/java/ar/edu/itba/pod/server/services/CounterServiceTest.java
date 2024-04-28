@@ -705,4 +705,28 @@ private final Queue<Assignment> pendingAssignments =
                                                 .build())
                                 .build());
     }
+
+    @Test
+    public void testFreeCountersNoSector() throws HasPendingPassengersException {
+        when(counterRepository.freeCounters("A", 1, "A")).thenThrow(NoSuchElementException.class);
+        FreeCountersRequest freeCountersRequest = FreeCountersRequest
+                .newBuilder()
+                .setSectorName("A")
+                .setCounterFrom(1)
+                .setAirline("A")
+                .build();
+        StatusRuntimeException exception = Assertions.assertThrows(
+                StatusRuntimeException.class,
+                () ->
+                        blockingStub.freeCounters(freeCountersRequest)
+        );
+
+        Assertions.assertEquals(
+                Status.NOT_FOUND.getCode(), exception.getStatus().getCode()
+        );
+        Assertions.assertEquals(
+                "Sector does not exist or no counters found for the specified range and airline",
+                exception.getStatus().getDescription()
+        );
+    }
 }
