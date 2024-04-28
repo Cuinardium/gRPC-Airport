@@ -227,6 +227,12 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
                                     "There are passengers waiting to check in in the specified counters")
                             .asRuntimeException());
             return;
+        } catch (UnauthorizedException e) {
+            responseObserver.onError(
+                    Status.PERMISSION_DENIED
+                            .withDescription("Counters are not assigned to the given airline")
+                            .asRuntimeException());
+            return;
         }
 
         Optional<AssignedInfo> maybeAssignedInfo = freedCountersRange.assignedInfo();

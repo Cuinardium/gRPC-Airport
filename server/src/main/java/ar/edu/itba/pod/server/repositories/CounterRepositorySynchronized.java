@@ -218,7 +218,7 @@ public class CounterRepositorySynchronized implements CounterRepository {
 
     @Override
     public synchronized CountersRange freeCounters(String sector, int counterFrom, String airline)
-            throws NoSuchElementException, HasPendingPassengersException {
+            throws NoSuchElementException, HasPendingPassengersException, UnauthorizedException {
         if (!hasSector(sector)) {
             throw new NoSuchElementException("Sector does not exist");
         }
@@ -226,9 +226,7 @@ public class CounterRepositorySynchronized implements CounterRepository {
 
         CountersRange toFreeCounter = null;
         for (CountersRange range : counters) {
-            if (range.range().from() >= counterFrom
-                    && range.assignedInfo().isPresent()
-                    && range.assignedInfo().get().airline().equals(airline)) {
+            if (range.range().from() == counterFrom) {
                 toFreeCounter = range;
                 break;
             }
@@ -237,6 +235,15 @@ public class CounterRepositorySynchronized implements CounterRepository {
         if (toFreeCounter == null) {
             throw new NoSuchElementException("Counter does not exist or not assigned");
         }
+
+        if (toFreeCounter.assignedInfo().isEmpty()) {
+            throw new NoSuchElementException("Counter is not assigned");
+        }
+
+        if (!toFreeCounter.assignedInfo().get().airline().equals(airline)) {
+            throw new UnauthorizedException("Counter is not assigned to the airline");
+        }
+
 
         if (passengersInCounters.containsKey(toFreeCounter.range())) {
             if (!passengersInCounters.get(toFreeCounter.range()).isEmpty()) {

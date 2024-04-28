@@ -357,7 +357,7 @@ public class CounterRepositoryImpl implements CounterRepository {
     }
 
     @Override
-    public CountersRange freeCounters(String sectorName, int counterFrom, String airline) throws NoSuchElementException, HasPendingPassengersException {
+    public CountersRange freeCounters(String sectorName, int counterFrom, String airline) throws NoSuchElementException, HasPendingPassengersException, UnauthorizedException {
         if(!hasSector(sectorName)) {
             throw new NoSuchElementException("Sector does not exist");
         }
@@ -367,11 +367,16 @@ public class CounterRepositoryImpl implements CounterRepository {
             TreeSet<CountersRange> set = sectorCounters.get(sectorName);
             maybeToFreeCounterRange =
                     set.stream().filter(
-                            range -> range.range().from() == counterFrom && range.assignedInfo().isPresent() && range.assignedInfo().get().airline().equals(airline)
+                            range -> range.range().from() == counterFrom && range.assignedInfo().isPresent()
                     ).findFirst();
-            if (maybeToFreeCounterRange.isEmpty()) {
+            if (maybeToFreeCounterRange.isEmpty() || maybeToFreeCounterRange.get().assignedInfo().isEmpty()) {
                 throw new NoSuchElementException("Counter does not exist or not assigned");
             }
+
+            if (!maybeToFreeCounterRange.get().assignedInfo().get().airline().equals(airline)) {
+                throw new UnauthorizedException("Counter is not assigned to the airline");
+            }
+
         } finally {
             sectorCountersLock.readLock().unlock();
         }

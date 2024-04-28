@@ -5,7 +5,6 @@ import ar.edu.itba.pod.server.models.*;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
 import ar.edu.itba.pod.server.utils.Pair;
 
-import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -422,7 +421,7 @@ public abstract class CounterRepositoryTest<T extends CounterRepository> {
                     FlightAlreadyCheckedInException,
                     FlightAlreadyAssignedException,
                     FlightAlreadyQueuedException,
-                    HasPendingPassengersException {
+                    HasPendingPassengersException, UnauthorizedException {
         counterRepository.addSector("D");
 
         counterRepository.addCounters("D", 3);
@@ -505,12 +504,32 @@ public abstract class CounterRepositoryTest<T extends CounterRepository> {
     }
 
     @Test
+    public void testFreeCountersAirlineUnauthorized()
+            throws AlreadyExistsException,
+                    FlightAlreadyCheckedInException,
+                    FlightAlreadyAssignedException,
+                    FlightAlreadyQueuedException {
+        counterRepository.addSector("D");
+
+        counterRepository.addCounters("D", 3);
+
+        // Should assign counters from 1 to 2
+        List<String> flights = List.of("AA123", "AA124");
+        Assignment assignmentD1 = new Assignment("AmericanAirlines", flights, 2);
+        counterRepository.assignCounterAssignment("D", assignmentD1);
+
+        Assertions.assertThrows(
+                UnauthorizedException.class,
+                () -> counterRepository.freeCounters("D", 1, "Delta"));
+    }
+
+    @Test
     public void testFreeCountersSuccessNoPendingAssignmentsMergesWithNext()
             throws AlreadyExistsException,
                     FlightAlreadyCheckedInException,
                     FlightAlreadyAssignedException,
                     FlightAlreadyQueuedException,
-                    HasPendingPassengersException {
+                    HasPendingPassengersException, UnauthorizedException {
         counterRepository.addSector("D");
 
         counterRepository.addCounters("D", 3);
@@ -549,7 +568,7 @@ public abstract class CounterRepositoryTest<T extends CounterRepository> {
                     FlightAlreadyAssignedException,
                     FlightAlreadyQueuedException,
                     AlreadyExistsException,
-                    HasPendingPassengersException {
+                    HasPendingPassengersException, UnauthorizedException {
         counterRepository.addSector("D");
 
         counterRepository.addCounters("D", 3);
@@ -635,7 +654,7 @@ public abstract class CounterRepositoryTest<T extends CounterRepository> {
                     FlightAlreadyAssignedException,
                     FlightAlreadyQueuedException,
                     AlreadyExistsException,
-                    HasPendingPassengersException {
+                    HasPendingPassengersException, UnauthorizedException {
 
         counterRepository.addSector("D");
 
@@ -705,7 +724,7 @@ public abstract class CounterRepositoryTest<T extends CounterRepository> {
     // ---- Queues - Assignments
 
     @Test
-    public void testFreeCountersSuccessWithPendingAssignments() throws AlreadyExistsException, FlightAlreadyCheckedInException, FlightAlreadyAssignedException, FlightAlreadyQueuedException, HasPendingPassengersException {
+    public void testFreeCountersSuccessWithPendingAssignments() throws AlreadyExistsException, FlightAlreadyCheckedInException, FlightAlreadyAssignedException, FlightAlreadyQueuedException, HasPendingPassengersException, UnauthorizedException {
 
         counterRepository.addSector("D");
 
@@ -774,7 +793,7 @@ public abstract class CounterRepositoryTest<T extends CounterRepository> {
     }
 
     @Test
-    public void testFreeCountersSuccessWithPendingAssignmentsBlocksIfPendingCannotBeAssigned() throws AlreadyExistsException, FlightAlreadyCheckedInException, FlightAlreadyAssignedException, FlightAlreadyQueuedException, HasPendingPassengersException {
+    public void testFreeCountersSuccessWithPendingAssignmentsBlocksIfPendingCannotBeAssigned() throws AlreadyExistsException, FlightAlreadyCheckedInException, FlightAlreadyAssignedException, FlightAlreadyQueuedException, HasPendingPassengersException, UnauthorizedException {
 
         counterRepository.addSector("D");
 
