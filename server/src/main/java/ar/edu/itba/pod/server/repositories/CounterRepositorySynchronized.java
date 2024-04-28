@@ -34,6 +34,8 @@ public class CounterRepositorySynchronized implements CounterRepository {
 
         Sector newSector = new Sector(sector, new LinkedList<>());
 
+        assignmentQueues.put(sector, new LinkedList<>());
+
         sectors.put(sector, newSector);
     }
 
@@ -190,7 +192,7 @@ public class CounterRepositorySynchronized implements CounterRepository {
                         .filter(
                                 range ->
                                         range.assignedInfo().isEmpty()
-                                                && (range.range().to() - range.range().from())
+                                                && (range.range().to() + 1 - range.range().from())
                                                         >= counterAssignment.counterCount())
                         .findFirst();
 
@@ -310,7 +312,7 @@ public class CounterRepositorySynchronized implements CounterRepository {
 
         List<Optional<String>> result = new ArrayList<>();
 
-        for (int i = 0; i < counter.range().to() - counter.range().from(); i++) {
+        for (int i = 0; i < counter.range().to() + 1 - counter.range().from(); i++) {
             if (passengers.isEmpty()) {
                 result.add(Optional.empty());
             } else {
