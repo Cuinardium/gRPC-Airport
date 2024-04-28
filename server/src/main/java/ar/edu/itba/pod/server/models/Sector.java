@@ -3,8 +3,7 @@ package ar.edu.itba.pod.server.models;
 import ar.edu.itba.pod.grpc.common.CounterRange;
 import ar.edu.itba.pod.grpc.counter.SectorInfo;
 
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public final class Sector {
 
@@ -14,6 +13,10 @@ public final class Sector {
     public Sector(String sectorName, List<CountersRange> countersRange) {
         this.sectorName = sectorName;
         this.countersRangeList = countersRange;
+    }
+
+    public Sector fromEntry(Map.Entry<String, Set<CountersRange>> entry) {
+        return new Sector(entry.getKey(), entry.getValue().stream().toList());
     }
 
     public String sectorName() {
