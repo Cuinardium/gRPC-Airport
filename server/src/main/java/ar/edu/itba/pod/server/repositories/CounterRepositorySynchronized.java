@@ -32,7 +32,7 @@ public class CounterRepositorySynchronized implements CounterRepository {
             throw new AlreadyExistsException("Sector already exists");
         }
 
-        Sector newSector = new Sector(sector, List.of());
+        Sector newSector = new Sector(sector, new LinkedList<>());
 
         sectors.put(sector, newSector);
     }
@@ -63,7 +63,7 @@ public class CounterRepositorySynchronized implements CounterRepository {
         List<CountersRange> counters = sectors.get(sector).countersRangeList();
 
         if (counters.isEmpty()) {
-            Range newRange = new Range(lastCounterId, lastCounterId + counterCount);
+            Range newRange = new Range(lastCounterId + 1, lastCounterId + counterCount);
             counters.add(new CountersRange(newRange));
 
             lastCounterId += counterCount;
@@ -75,7 +75,7 @@ public class CounterRepositorySynchronized implements CounterRepository {
         // Otherwise, we just need to extend the last range
         CountersRange lastRange = counters.get(counters.size() - 1);
         if (lastRange.range().to() != lastCounterId || lastRange.assignedInfo().isPresent()) {
-            Range newRange = new Range(lastCounterId, lastCounterId + counterCount);
+            Range newRange = new Range(lastCounterId + 1, lastCounterId + counterCount);
             counters.add(new CountersRange(newRange));
             lastCounterId += counterCount;
             return newRange;
@@ -88,7 +88,7 @@ public class CounterRepositorySynchronized implements CounterRepository {
 
         tryPendingAssignments(sector);
 
-        return newRange;
+        return new Range(lastRange.range().to() + 1, newRange.to());
     }
 
     @Override
