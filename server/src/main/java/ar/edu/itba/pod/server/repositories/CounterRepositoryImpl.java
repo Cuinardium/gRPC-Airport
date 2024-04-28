@@ -130,7 +130,7 @@ public class CounterRepositoryImpl implements CounterRepository {
 
                 // Es incremental asi que si alguno no se pudo asignar -> el resto tampoco se va a poder
                 if (maybeFreeCounterRange.isEmpty()){
-                    break;
+                    continue;
                 }
 
                 Range assignedRange = assignInfoToAvailableCounterRange(assignment, maybeFreeCounterRange.get(), set);
