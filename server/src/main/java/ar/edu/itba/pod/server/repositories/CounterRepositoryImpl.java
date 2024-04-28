@@ -16,9 +16,9 @@ public class CounterRepositoryImpl implements CounterRepository {
     private final Map<String, Set<CountersRange>> sectorCounters = new HashMap<>();
     private final Set<String> assignedFlights = new HashSet<>();
 
-    private final ReadWriteLock sectorCountersLock = new ReentrantReadWriteLock();
-    private final ReadWriteLock assignmentQueueLock = new ReentrantReadWriteLock();
-    private final ReadWriteLock assignedFlightsLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock sectorCountersLock = new ReentrantReadWriteLock(true);
+    private final ReadWriteLock assignmentQueueLock = new ReentrantReadWriteLock(true);
+    private final ReadWriteLock assignedFlightsLock = new ReentrantReadWriteLock(true);
 
     @Override
     public void addSector(String sector) throws AlreadyExistsException {
@@ -76,12 +76,85 @@ public class CounterRepositoryImpl implements CounterRepository {
         return result;
     }
 
+    private Range assignInfoToAvailableCounterRange(Assignment counterAssignment, CountersRange freeRange, Set<CountersRange> set) {
+        int assignedFrom = freeRange.range().from();
+        int assignedTo = assignedFrom + counterAssignment.counterCount() - 1;
+
+        int remainingFrom = assignedTo + 1;
+        int remainingTo = freeRange.range().to();
+
+        CountersRange assignedRange =
+                new CountersRange(
+                        new Range(assignedFrom, assignedTo),
+                        new AssignedInfo(
+                                counterAssignment.airline(),
+                                counterAssignment.flights(),
+                                0)
+                );
+        set.remove(freeRange);
+        set.add(assignedRange);
+        if(remainingFrom <= remainingTo) {
+            CountersRange remainingRange =
+                    new CountersRange(
+                            new Range(remainingFrom, remainingTo)
+                    );
+            set.add(remainingRange);
+        }
+        return assignedRange.range();
+    }
+
+    private void tryPendingAssignments(String sectorName) {
+        List<String> newlyAssignedFlights = new ArrayList<>();
+        assignmentQueueLock.writeLock().lock();
+        // TODO: revisar esto
+        while(!sectorCountersLock.writeLock().tryLock()) {
+            assignmentQueueLock.writeLock().unlock();
+            assignmentQueueLock.writeLock().lock();
+        }
+        try {
+            if (!assigmentQueue.containsKey(sectorName)) {
+                return;
+            }
+            Queue<Assignment> assignments = assigmentQueue.get(sectorName);
+            if (assignments.isEmpty()) {
+                return;
+            }
+            for(int i = 0; i < assignments.size(); i++){
+                Assignment assignment = assignments.peek();
+                Set<CountersRange> set = sectorCounters.get(sectorName);
+                Optional<CountersRange> maybeFreeCounterRange =
+                        set.stream().filter(
+                                range -> range.assignedInfo().isEmpty() && (range.range().to() - range.range().from() + 1) >= assignment.counterCount()
+                        ).findFirst();
+
+                // Es incremental asi que si alguno no se pudo asignar -> el resto tampoco se va a poder
+                if (maybeFreeCounterRange.isEmpty()){
+                    break;
+                }
+
+                assignInfoToAvailableCounterRange(assignment, maybeFreeCounterRange.get(), set);
+                newlyAssignedFlights.addAll(assignment.flights());
+                assignments.poll();
+            }
+        } finally {
+            assignmentQueueLock.writeLock().unlock();
+            sectorCountersLock.writeLock().unlock();
+        }
+
+        assignmentQueueLock.writeLock().lock();
+        try {
+            assignedFlights.addAll(newlyAssignedFlights);
+        } finally {
+            assignmentQueueLock.writeLock().unlock();
+        }
+    }
+
     @Override
     public Range addCounters(String sector, int counterCount) throws NoSuchElementException {
         sectorCountersLock.readLock().lock();
         try {
             if (!sectorCounters.containsKey(sector)) {
-                throw new NoSuchElementException();
+                throw new NoSuchElementException("Sector does not exist");
             }
         } finally {
             sectorCountersLock.readLock().unlock();
@@ -89,12 +162,24 @@ public class CounterRepositoryImpl implements CounterRepository {
         sectorCountersLock.writeLock().lock();
         try {
             Set<CountersRange> set = sectorCounters.get(sector);
-            set.add(new CountersRange(new Range(lastCounter+1, lastCounter+counterCount)));
-            lastCounter = lastCounter+counterCount;
+            CountersRange newRange;
+            Optional<CountersRange> maybeLastCounter = set.stream().filter(range -> range.range().to() == lastCounter).findFirst();
+            // si no es el ultimo o si tiene assignedInfo
+            //   -> creo uno nuevo
+            if (maybeLastCounter.isEmpty() || maybeLastCounter.get().assignedInfo().isPresent()) {
+                newRange = new CountersRange(new Range(lastCounter + 1, lastCounter + counterCount));
+            } else {
+                CountersRange lastCounter = maybeLastCounter.get();
+                set.remove(lastCounter);
+                newRange = new CountersRange(new Range(lastCounter.range().from(), this.lastCounter + counterCount));
+            }
+            set.add(newRange);
+            lastCounter = lastCounter + counterCount;
+            tryPendingAssignments(sector);
+            return new Range(lastCounter - counterCount + 1, lastCounter);
         } finally {
             sectorCountersLock.writeLock().unlock();
         }
-        return null;
     }
 
     @Override
@@ -202,10 +287,14 @@ public class CounterRepositoryImpl implements CounterRepository {
                 throw new FlightAlreadyCheckedInException("Flight already checked in");
             }
         } finally {
-            sectorCountersLock.readLock().unlock();
+            assignedFlightsLock.readLock().unlock();
         }
 
         sectorCountersLock.writeLock().lock();
+        while (!assignedFlightsLock.writeLock().tryLock()) {
+            sectorCountersLock.writeLock().unlock();
+            sectorCountersLock.writeLock().lock();
+        }
         try {
             Set<CountersRange> set = sectorCounters.get(sectorName);
             Optional<CountersRange> maybeFreeCounterRange =
@@ -213,36 +302,18 @@ public class CounterRepositoryImpl implements CounterRepository {
                             range -> range.assignedInfo().isEmpty() && (range.range().to() - range.range().from() + 1) >= counterAssignment.counterCount()
                     ).findFirst();
             if (maybeFreeCounterRange.isPresent()) {
-                CountersRange freeRange = maybeFreeCounterRange.get();
-                int assignedFrom = freeRange.range().from();
-                int assignedTo = assignedFrom + counterAssignment.counterCount() - 1;
+                Range range = assignInfoToAvailableCounterRange(counterAssignment, maybeFreeCounterRange.get(), set);
 
-                int remainingFrom = assignedTo + 1;
-                int remainingTo = freeRange.range().to();
+                // TODO: passengers?
+                assignedFlights.addAll(counterAssignment.flights());
 
-                CountersRange assignedRange =
-                        new CountersRange(
-                                new Range(assignedFrom, assignedTo),
-                                new AssignedInfo(
-                                        counterAssignment.airline(),
-                                        counterAssignment.flights(),
-                                        0)
-                        );
-                set.remove(freeRange);
-                set.add(assignedRange);
-                if(remainingFrom <= remainingTo) {
-                    CountersRange remainingRange =
-                            new CountersRange(
-                                    new Range(remainingFrom, remainingTo)
-                            );
-                    set.add(remainingRange);
-                }
-                return new Pair<>(assignedRange.range(), 0);
+                return new Pair<>(range, 0);
             } else {
                 int pending = addAssignmentToQueue(sectorName, counterAssignment);
                 return new Pair<>(null, pending);
             }
         } finally {
+            assignedFlightsLock.writeLock().unlock();
             sectorCountersLock.writeLock().unlock();
         }
     }
@@ -262,7 +333,12 @@ public class CounterRepositoryImpl implements CounterRepository {
 
     @Override
     public List<String> getPreviouslyAssignedFlights() {
-        return List.of();
+        assignedFlightsLock.readLock().lock();
+        try {
+            return assignedFlights.stream().toList();
+        } finally {
+            assignedFlightsLock.readLock().unlock();
+        }
     }
 
     @Override
