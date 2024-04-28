@@ -4,15 +4,14 @@ import static org.mockito.Mockito.*;
 
 import ar.edu.itba.pod.grpc.common.CounterRange;
 import ar.edu.itba.pod.grpc.counter.*;
-import ar.edu.itba.pod.grpc.events.EventType;
-import ar.edu.itba.pod.grpc.events.PassengerCheckedInInfo;
-import ar.edu.itba.pod.grpc.events.RegisterResponse;
+import ar.edu.itba.pod.grpc.events.*;
 import ar.edu.itba.pod.server.events.EventManager;
 import ar.edu.itba.pod.server.exceptions.*;
 import ar.edu.itba.pod.server.models.*;
 import ar.edu.itba.pod.server.repositories.CheckinRepository;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
 import ar.edu.itba.pod.server.repositories.PassengerRepository;
+import ar.edu.itba.pod.server.utils.Pair;
 
 import com.google.protobuf.Empty;
 
@@ -30,7 +29,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.util.*;
-import java.util.concurrent.LinkedBlockingDeque;
 
 @RunWith(JUnit4.class)
 public class CounterServiceTest {
@@ -59,11 +57,12 @@ public class CounterServiceTest {
                     new Sector("D", sectorDCounters),
                     new Sector("Z", Collections.emptyList()));
 
-private final Queue<Assignment> pendingAssignments =
-            new LinkedList<>(List.of(
-                    new Assignment("AirCanada", List.of("AC003"), 2),
-                    new Assignment("AmericanAirlines", List.of("AA987", "AA988"), 5),
-                    new Assignment("AirCanada", List.of("AC001"), 2)));
+    private final Queue<Assignment> pendingAssignments =
+            new LinkedList<>(
+                    List.of(
+                            new Assignment("AirCanada", List.of("AC003"), 2),
+                            new Assignment("AmericanAirlines", List.of("AA987", "AA988"), 5),
+                            new Assignment("AirCanada", List.of("AC001"), 2)));
 
     private CounterServiceGrpc.CounterServiceBlockingStub blockingStub;
 
@@ -294,8 +293,6 @@ private final Queue<Assignment> pendingAssignments =
         Assertions.assertTrue(response.getCountersList().isEmpty());
     }
 
-
-
     @Test
     public void testAssignCountersNoAirline() {
         when(counterRepository.getSector("C")).thenReturn(Optional.of(sectors.get(1)));
@@ -444,9 +441,11 @@ private final Queue<Assignment> pendingAssignments =
                 exception.getStatus().getDescription());
     }
 
-
     @Test
-    public void testAssignCountersNoSectorFound() throws FlightAlreadyCheckedInException, FlightAlreadyAssignedException, FlightAlreadyQueuedException {
+    public void testAssignCountersNoSectorFound()
+            throws FlightAlreadyCheckedInException,
+                    FlightAlreadyAssignedException,
+                    FlightAlreadyQueuedException {
         when(counterRepository.getSector("A")).thenReturn(Optional.empty());
 
         when(passengerRepository.getPassengers())
@@ -481,7 +480,270 @@ private final Queue<Assignment> pendingAssignments =
         Assertions.assertEquals("Sector not found", exception.getStatus().getDescription());
     }
 
-    /// ---------- TODO: TEST rest of assign counters
+    @Test
+    public void testAssignCountersFlightAlreadyAssigned()
+            throws FlightAlreadyCheckedInException,
+                    FlightAlreadyAssignedException,
+                    FlightAlreadyQueuedException {
+        when(counterRepository.getSector("C")).thenReturn(Optional.of(sectors.get(1)));
+
+        when(passengerRepository.getPassengers())
+                .thenReturn(
+                        List.of(
+                                new Passenger("ABC123", "AA123", "AmericanAirlines"),
+                                new Passenger("ABC124", "AA124", "AmericanAirlines"),
+                                new Passenger("ABC125", "AA125", "AmericanAirlines")));
+
+        when(counterRepository.assignCounterAssignment(
+                        "C",
+                        new Assignment(
+                                "AmericanAirlines",
+                                List.of("AA123", "AA124", "AA125"),
+                                3,
+                                any(),
+                                any())))
+                .thenThrow(new FlightAlreadyAssignedException("Flight already assigned"));
+
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.assignCounters(
+                                        AssignCountersRequest.newBuilder()
+                                                .setSectorName("C")
+                                                .setAssignment(
+                                                        CounterAssignment.newBuilder()
+                                                                .setAirline("AmericanAirlines")
+                                                                .setCounterCount(3)
+                                                                .addAllFlights(
+                                                                        List.of(
+                                                                                "AA123", "AA124",
+                                                                                "AA125"))
+                                                                .build())
+                                                .build()));
+
+        Assertions.assertEquals(Status.ALREADY_EXISTS.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals(
+                "There is at least one flight from the assignment that is already assigned to a counter.",
+                exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testAssignCountersFlightAlreadyQueued()
+            throws FlightAlreadyCheckedInException,
+                    FlightAlreadyAssignedException,
+                    FlightAlreadyQueuedException {
+        when(counterRepository.getSector("C")).thenReturn(Optional.of(sectors.get(1)));
+
+        when(passengerRepository.getPassengers())
+                .thenReturn(
+                        List.of(
+                                new Passenger("ABC123", "AA123", "AmericanAirlines"),
+                                new Passenger("ABC124", "AA124", "AmericanAirlines"),
+                                new Passenger("ABC125", "AA125", "AmericanAirlines")));
+
+        when(counterRepository.assignCounterAssignment(
+                        "C",
+                        new Assignment(
+                                "AmericanAirlines",
+                                List.of("AA123", "AA124", "AA125"),
+                                3,
+                                any(),
+                                any())))
+                .thenThrow(new FlightAlreadyQueuedException("Flight already queued"));
+
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.assignCounters(
+                                        AssignCountersRequest.newBuilder()
+                                                .setSectorName("C")
+                                                .setAssignment(
+                                                        CounterAssignment.newBuilder()
+                                                                .setAirline("AmericanAirlines")
+                                                                .setCounterCount(3)
+                                                                .addAllFlights(
+                                                                        List.of(
+                                                                                "AA123", "AA124",
+                                                                                "AA125"))
+                                                                .build())
+                                                .build()));
+
+        Assertions.assertEquals(Status.ALREADY_EXISTS.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals(
+                "There is at least one flight from the assignment that is already in queue to get assigned.",
+                exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testAssignCountersFlightAlreadyCheckedIn()
+            throws FlightAlreadyCheckedInException,
+                    FlightAlreadyAssignedException,
+                    FlightAlreadyQueuedException {
+        when(counterRepository.getSector("C")).thenReturn(Optional.of(sectors.get(1)));
+
+        when(passengerRepository.getPassengers())
+                .thenReturn(
+                        List.of(
+                                new Passenger("ABC123", "AA123", "AmericanAirlines"),
+                                new Passenger("ABC124", "AA124", "AmericanAirlines"),
+                                new Passenger("ABC125", "AA125", "AmericanAirlines")));
+
+        when(counterRepository.assignCounterAssignment(
+                        "C",
+                        new Assignment(
+                                "AmericanAirlines",
+                                List.of("AA123", "AA124", "AA125"),
+                                3,
+                                any(),
+                                any())))
+                .thenThrow(new FlightAlreadyCheckedInException("Flight already checked in"));
+
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () ->
+                                blockingStub.assignCounters(
+                                        AssignCountersRequest.newBuilder()
+                                                .setSectorName("C")
+                                                .setAssignment(
+                                                        CounterAssignment.newBuilder()
+                                                                .setAirline("AmericanAirlines")
+                                                                .setCounterCount(3)
+                                                                .addAllFlights(
+                                                                        List.of(
+                                                                                "AA123", "AA124",
+                                                                                "AA125"))
+                                                                .build())
+                                                .build()));
+
+        Assertions.assertEquals(Status.ALREADY_EXISTS.getCode(), exception.getStatus().getCode());
+        Assertions.assertEquals(
+                "There is at least one flight from the assignment that has already been checked in.",
+                exception.getStatus().getDescription());
+    }
+
+    @Test
+    public void testAssignCountersCounterAssigned()
+            throws FlightAlreadyCheckedInException,
+                    FlightAlreadyAssignedException,
+                    FlightAlreadyQueuedException {
+        when(counterRepository.getSector("C")).thenReturn(Optional.of(sectors.get(1)));
+
+        when(passengerRepository.getPassengers())
+                .thenReturn(
+                        List.of(
+                                new Passenger("ABC123", "AA123", "AmericanAirlines"),
+                                new Passenger("ABC124", "AA124", "AmericanAirlines"),
+                                new Passenger("ABC125", "AA125", "AmericanAirlines")));
+
+        when(counterRepository.assignCounterAssignment(
+                        "C",
+                        new Assignment(
+                                "AmericanAirlines",
+                                List.of("AA123", "AA124", "AA125"),
+                                3,
+                                any(),
+                                any())))
+                .thenReturn(new Pair<>(new Range(2, 4), 0));
+
+        when(eventManager.notify(anyString(), any(RegisterResponse.class))).thenReturn(true);
+
+        AssignCountersRequest request =
+                AssignCountersRequest.newBuilder()
+                        .setSectorName("C")
+                        .setAssignment(
+                                CounterAssignment.newBuilder()
+                                        .setAirline("AmericanAirlines")
+                                        .setCounterCount(3)
+                                        .addAllFlights(List.of("AA123", "AA124", "AA125"))
+                                        .build())
+                        .build();
+
+        AssignCountersResponse response = blockingStub.assignCounters(request);
+
+        Assertions.assertEquals(
+                AssignationStatus.ASSIGNATION_STATUS_SUCCESSFUL, response.getStatus());
+        Assertions.assertEquals(2, response.getAssignedCounters().getFrom());
+        Assertions.assertEquals(4, response.getAssignedCounters().getTo());
+
+        verify(eventManager)
+                .notify(
+                        "AmericanAirlines",
+                        RegisterResponse.newBuilder()
+                                .setEventType(EventType.EVENT_TYPE_COUNTERS_ASSIGNED)
+                                .setCountersAssignedInfo(
+                                        CountersAssignedInfo.newBuilder()
+                                                .setSectorName("C")
+                                                .setCounters(
+                                                        CounterRange.newBuilder()
+                                                                .setFrom(2)
+                                                                .setTo(4)
+                                                                .build())
+                                                .addAllFlights(List.of("AA123", "AA124", "AA125"))
+                                                .build())
+                                .build());
+    }
+
+    @Test
+    public void testAssignCountersCounterPending()
+            throws FlightAlreadyCheckedInException,
+                    FlightAlreadyAssignedException,
+                    FlightAlreadyQueuedException {
+        when(counterRepository.getSector("C")).thenReturn(Optional.of(sectors.get(1)));
+
+        when(passengerRepository.getPassengers())
+                .thenReturn(
+                        List.of(
+                                new Passenger("ABC123", "AA123", "AmericanAirlines"),
+                                new Passenger("ABC124", "AA124", "AmericanAirlines"),
+                                new Passenger("ABC125", "AA125", "AmericanAirlines")));
+
+        when(counterRepository.assignCounterAssignment(
+                        "C",
+                        new Assignment(
+                                "AmericanAirlines",
+                                List.of("AA123", "AA124", "AA125"),
+                                3,
+                                any(),
+                                any())))
+                .thenReturn(new Pair<>(null, 7));
+
+        when(eventManager.notify(anyString(), any(RegisterResponse.class))).thenReturn(true);
+
+        AssignCountersRequest request =
+                AssignCountersRequest.newBuilder()
+                        .setSectorName("C")
+                        .setAssignment(
+                                CounterAssignment.newBuilder()
+                                        .setAirline("AmericanAirlines")
+                                        .setCounterCount(3)
+                                        .addAllFlights(List.of("AA123", "AA124", "AA125"))
+                                        .build())
+                        .build();
+
+        AssignCountersResponse response = blockingStub.assignCounters(request);
+
+        Assertions.assertEquals(AssignationStatus.ASSIGNATION_STATUS_PENDING, response.getStatus());
+        Assertions.assertEquals(7, response.getPendingAssignations());
+
+        verify(eventManager)
+                .notify(
+                        "AmericanAirlines",
+                        RegisterResponse.newBuilder()
+                                .setEventType(EventType.EVENT_TYPE_ASSIGNATION_PENDING)
+                                .setAssignationPendingInfo(
+                                        AssignationPendingInfo.newBuilder()
+                                                .setSectorName("C")
+                                                .addAllFlights(List.of("AA123", "AA124", "AA125"))
+                                                .setCounterCount(3)
+                                                .setPendingAssignations(7)
+                                                .build())
+                                .build());
+
+    }
+
 
     @Test
     public void testListPendingAssignmentsNoSectorName() {
@@ -639,7 +901,8 @@ private final Queue<Assignment> pendingAssignments =
     }
 
     @Test
-    public void testCheckinCountersUnauthorized() throws NoSuchElementException, UnauthorizedException {
+    public void testCheckinCountersUnauthorized()
+            throws NoSuchElementException, UnauthorizedException {
         when(counterRepository.hasSector("C")).thenReturn(true);
         when(counterRepository.checkinCounters("C", 3, "AmericanAirlines"))
                 .thenThrow(new UnauthorizedException("Unauthorized"));
@@ -709,24 +972,20 @@ private final Queue<Assignment> pendingAssignments =
     @Test
     public void testFreeCountersNoSector() throws HasPendingPassengersException {
         when(counterRepository.freeCounters("A", 1, "A")).thenThrow(NoSuchElementException.class);
-        FreeCountersRequest freeCountersRequest = FreeCountersRequest
-                .newBuilder()
-                .setSectorName("A")
-                .setCounterFrom(1)
-                .setAirline("A")
-                .build();
-        StatusRuntimeException exception = Assertions.assertThrows(
-                StatusRuntimeException.class,
-                () ->
-                        blockingStub.freeCounters(freeCountersRequest)
-        );
+        FreeCountersRequest freeCountersRequest =
+                FreeCountersRequest.newBuilder()
+                        .setSectorName("A")
+                        .setCounterFrom(1)
+                        .setAirline("A")
+                        .build();
+        StatusRuntimeException exception =
+                Assertions.assertThrows(
+                        StatusRuntimeException.class,
+                        () -> blockingStub.freeCounters(freeCountersRequest));
 
-        Assertions.assertEquals(
-                Status.NOT_FOUND.getCode(), exception.getStatus().getCode()
-        );
+        Assertions.assertEquals(Status.NOT_FOUND.getCode(), exception.getStatus().getCode());
         Assertions.assertEquals(
                 "Sector does not exist or no counters found for the specified range and airline",
-                exception.getStatus().getDescription()
-        );
+                exception.getStatus().getDescription());
     }
 }

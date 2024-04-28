@@ -376,21 +376,21 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
             return;
         } catch (FlightAlreadyAssignedException e) {
             responseObserver.onError(
-                    io.grpc.Status.INVALID_ARGUMENT
+                    Status.ALREADY_EXISTS
                             .withDescription(
                                     "There is at least one flight from the assignment that is already assigned to a counter.")
                             .asRuntimeException());
             return;
         } catch (FlightAlreadyQueuedException e) {
             responseObserver.onError(
-                    io.grpc.Status.INVALID_ARGUMENT
+                    Status.ALREADY_EXISTS
                             .withDescription(
                                     "There is at least one flight from the assignment that is already in queue to get assigned.")
                             .asRuntimeException());
             return;
         } catch (FlightAlreadyCheckedInException e) {
             responseObserver.onError(
-                    io.grpc.Status.INVALID_ARGUMENT
+                    Status.ALREADY_EXISTS
                             .withDescription(
                                     "There is at least one flight from the assignment that has already been checked in.")
                             .asRuntimeException());
