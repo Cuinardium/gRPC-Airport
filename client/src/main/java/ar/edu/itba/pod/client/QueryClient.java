@@ -64,18 +64,12 @@ public class QueryClient {
         switch (action) {
 
             case "queryCounters":
-                String sectorCounter = System.getProperty("sector");
-                CountersRequest countersRequest;
-                if(sectorCounter != null) {
-                    countersRequest = CountersRequest
-                            .newBuilder()
-                            .setSectorName(sectorCounter)
-                            .build();
-                }else {
-                    countersRequest = CountersRequest
-                            .newBuilder()
-                            .build();
-                }
+                Optional<String> sectorCounter = Optional.ofNullable(System.getProperty("sector"));
+                CountersRequest countersRequest = CountersRequest
+                        .newBuilder()
+                        .setSectorName(sectorCounter.orElse(""))
+                        .build();
+
                 try {
                     CountersResponse countersResponse = stub.counters(countersRequest);
                     outputCountersFile(outPath, countersResponse.getCountersList());
@@ -90,8 +84,8 @@ public class QueryClient {
                 Optional<String> airline= Optional.ofNullable(System.getProperty("airline"));
                 CheckinsRequest checkinsRequest = CheckinsRequest
                         .newBuilder()
-                        .setSectorName(sectorCheckin.orElse(null))
-                        .setAirline(airline.orElse(null))
+                        .setSectorName((sectorCheckin.orElse("")))
+                        .setAirline(airline.orElse(""))
                         .build();
                 try {
                     CheckinsResponse checkinsResponse = stub.checkins(checkinsRequest);
