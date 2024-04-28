@@ -1,13 +1,11 @@
 package ar.edu.itba.pod.server.repositories.counterRepository;
 
 import ar.edu.itba.pod.server.exceptions.*;
-import ar.edu.itba.pod.server.models.Assignment;
-import ar.edu.itba.pod.server.models.CountersRange;
-import ar.edu.itba.pod.server.models.Range;
-import ar.edu.itba.pod.server.models.Sector;
+import ar.edu.itba.pod.server.models.*;
 import ar.edu.itba.pod.server.repositories.CounterRepository;
 import ar.edu.itba.pod.server.utils.Pair;
 
+import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -703,4 +701,268 @@ public abstract class CounterRepositoryTest<T extends CounterRepository> {
         Assertions.assertEquals(3, sector.countersRangeList().get(0).range().to());
         Assertions.assertFalse(sector.countersRangeList().get(0).assignedInfo().isPresent());
     }
+
+    // ---- Queues - Assignments
+
+    @Test
+    public void testFreeCountersSuccessWithPendingAssignments() throws AlreadyExistsException, FlightAlreadyCheckedInException, FlightAlreadyAssignedException, FlightAlreadyQueuedException, HasPendingPassengersException {
+
+        counterRepository.addSector("D");
+
+        counterRepository.addCounters("D", 10);
+
+        // Assign 1 to 10
+        List<String> flights = List.of("AA123");
+        Assignment assignmentD1 = new Assignment("AmericanAirlines", flights, 10);
+
+        counterRepository.assignCounterAssignment("D", assignmentD1);
+
+        int [] timesMoved = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        Range [] ranges = {null, null, null, null, null, null, null, null, null, null};
+
+        // 10 flights ask for 1 counter each
+        for (int i = 0; i < 10; i++) {
+
+            int index = i;
+            Assignment assignment =  new Assignment("AmericanAirlines", List.of("AA" + i), 1,
+                    (pendingAhead) ->
+                        timesMoved[index] += pendingAhead, (range) -> ranges[index] = range);
+
+
+            counterRepository.assignCounterAssignment("D", assignment);
+        }
+
+        // Check that flights are in queue
+        List<Assignment> queue = counterRepository.getQueuedAssignments("D").stream().toList();
+        Assertions.assertEquals(10, queue.size());
+        for (int i = 0; i < 10; i++) {
+            Assertions.assertEquals("AA" + i, queue.get(i).flights().get(0));
+        }
+
+        // Free 1 to 10
+        CountersRange result = counterRepository.freeCounters("D", 1, "AmericanAirlines");
+
+        // All pending assignments should be assigned
+        Assertions.assertEquals(1, result.range().from());
+        Assertions.assertEquals(10, result.range().to());
+
+        // Check that every flight is assigned
+        List<CountersRange> countersRanges = counterRepository.getSector("D").get().countersRangeList();
+        for (int i = 0; i < 10; i++) {
+            Assertions.assertEquals(i + 1, countersRanges.get(i).range().from());
+            Assertions.assertEquals(i + 1, countersRanges.get(i).range().to());
+            Assertions.assertTrue(countersRanges.get(i).assignedInfo().isPresent());
+            Assertions.assertEquals("AmericanAirlines", countersRanges.get(i).assignedInfo().get().airline());
+            Assertions.assertEquals("AA" + i, countersRanges.get(i).assignedInfo().get().flights().get(0));
+        }
+
+        // Expected timesMoved
+        // i = 0, pendingAhead = 0
+        // i = 1, pendingAhead = 0
+        // i = 2, pendingAhead = 1 + 0
+        // i = 3, pendingAhead = 2 + 1 + 0
+        // i = 4, pendingAhead = 3 + 2 + 1 + 0
+        int [] expectedTimesMoved = {0, 0, 1, 3, 6, 10, 15, 21, 28, 36};
+
+        // Validate callback
+        for (int i = 0; i < 10; i++) {
+            Assertions.assertEquals(expectedTimesMoved[i], timesMoved[i]);
+
+            Assertions.assertEquals(i + 1, ranges[i].from());
+            Assertions.assertEquals(i + 1, ranges[i].to());
+        }
+    }
+
+    @Test
+    public void testFreeCountersSuccessWithPendingAssignmentsBlocksIfPendingCannotBeAssigned() throws AlreadyExistsException, FlightAlreadyCheckedInException, FlightAlreadyAssignedException, FlightAlreadyQueuedException, HasPendingPassengersException {
+
+        counterRepository.addSector("D");
+
+        counterRepository.addCounters("D", 2);
+
+        // Assign 1 to 2
+        List<String> flights = List.of("AA123");
+        Assignment assignmentD1 = new Assignment("AmericanAirlines", flights, 2);
+
+        counterRepository.assignCounterAssignment("D", assignmentD1);
+
+        // 1 flight ask for 1 counter
+        Assignment assignment =  new Assignment("AmericanAirlines", List.of("AA124"), 1);
+        counterRepository.assignCounterAssignment("D", assignment);
+
+        // 1 flight ask for 2 counters
+        assignment =  new Assignment("AmericanAirlines", List.of("AA125"), 2);
+        counterRepository.assignCounterAssignment("D", assignment);
+
+        // 1 flight ask for 1 counter
+        assignment =  new Assignment("AmericanAirlines", List.of("AA126"), 1);
+        counterRepository.assignCounterAssignment("D", assignment);
+
+        // Free 1 to 2
+        CountersRange result = counterRepository.freeCounters("D", 1, "AmericanAirlines");
+
+        Sector sector = counterRepository.getSector("D").get();
+
+        // The first flight should be assigned
+        Assertions.assertEquals(1, sector.countersRangeList().get(0).range().from());
+        Assertions.assertEquals(1, sector.countersRangeList().get(0).range().to());
+        Assertions.assertTrue(sector.countersRangeList().get(0).assignedInfo().isPresent());
+        Assertions.assertEquals("AmericanAirlines", sector.countersRangeList().get(0).assignedInfo().get().airline());
+        Assertions.assertEquals("AA124", sector.countersRangeList().get(0).assignedInfo().get().flights().get(0));
+
+        Assertions.assertEquals(2, sector.countersRangeList().get(1).range().from());
+        Assertions.assertEquals(2, sector.countersRangeList().get(1).range().to());
+        Assertions.assertFalse(sector.countersRangeList().get(1).assignedInfo().isPresent());
+
+        // The rest should be in queue
+        List<Assignment> queue = counterRepository.getQueuedAssignments("D").stream().toList();
+
+        Assertions.assertEquals(2, queue.size());
+        Assertions.assertEquals("AA125", queue.get(0).flights().get(0));
+        Assertions.assertEquals("AA126", queue.get(1).flights().get(0));
+    }
+
+    // ---- Queues - Passengers
+
+    @Test
+    public void testAddPassengerToQueuePassengerAlreadyQueued() throws AlreadyExistsException, FlightAlreadyCheckedInException, FlightAlreadyAssignedException, FlightAlreadyQueuedException, HasPendingPassengersException {
+
+        counterRepository.addSector("D");
+
+        counterRepository.addCounters("D", 2);
+
+        // Assign 1 to 2
+        List<String> flights = List.of("AA123");
+        Assignment assignmentD1 = new Assignment("AmericanAirlines", flights, 2);
+
+        counterRepository.assignCounterAssignment("D", assignmentD1);
+
+        // Add a passenger to the queue
+        counterRepository.addPassengerToQueue(new Range(1, 2), "XYZ123");
+
+        // Should fail because the passenger is already queued
+        Assertions.assertThrows(
+                AlreadyExistsException.class,
+                () -> counterRepository.addPassengerToQueue(new Range(1, 2), "XYZ123"));
+    }
+
+    @Test
+    public void testAddPassengerToQueueCounterNotFound() throws AlreadyExistsException {
+
+        counterRepository.addSector("D");
+        counterRepository.addCounters("D", 2);
+
+
+        Assertions.assertThrows(
+                NoSuchElementException.class,
+                () -> counterRepository.addPassengerToQueue(new Range(2, 2), "XYZ123"));
+    }
+
+    @Test
+    public void testAddPassengerToQueueSuccess() throws AlreadyExistsException, FlightAlreadyCheckedInException, FlightAlreadyAssignedException, FlightAlreadyQueuedException {
+        counterRepository.addSector("D");
+        counterRepository.addCounters("D", 2);
+
+        // Assign flight
+        List<String> flights = List.of("AA123");
+        Assignment assignmentD1 = new Assignment("AmericanAirlines", flights, 2);
+        counterRepository.assignCounterAssignment("D", assignmentD1);
+
+        // Add 10 passengers to the queue
+        for (int i = 0; i < 10; i++) {
+            counterRepository.addPassengerToQueue(new Range(1, 2), "XYZ" + i);
+        }
+
+        // Check that the passengers are in the queue
+        for (int i = 0; i < 10; i++) {
+            Assertions.assertTrue(counterRepository.hasPassengerInCounter(new Range(1, 2), "XYZ" + i));
+        }
+    }
+
+    @Test
+    public void testCheckinCountersSectorNotFound() {
+        Assertions.assertThrows(
+                NoSuchElementException.class,
+                () -> counterRepository.checkinCounters("D", 1, "AmericanAirlines"));
+    }
+
+    @Test
+    public void testCheckinCountersCounterNotFound() throws AlreadyExistsException, FlightAlreadyCheckedInException, FlightAlreadyAssignedException, FlightAlreadyQueuedException {
+        counterRepository.addSector("D");
+
+        counterRepository.addCounters("D", 2);
+
+        // Assign 1 to 2
+        List<String> flights = List.of("AA123");
+        Assignment assignmentD1 = new Assignment("AmericanAirlines", flights, 2);
+
+        counterRepository.assignCounterAssignment("D", assignmentD1);
+
+        // Should fail because the counter is not assigned
+
+        Assertions.assertThrows(
+                NoSuchElementException.class,
+                () -> counterRepository.checkinCounters("D", 2, "AmericanAirlines"));
+    }
+
+    @Test
+    public void testCheckinCountersSuccess() throws AlreadyExistsException, FlightAlreadyCheckedInException, FlightAlreadyAssignedException, FlightAlreadyQueuedException, HasPendingPassengersException, UnauthorizedException {
+
+        counterRepository.addSector("D");
+
+        counterRepository.addCounters("D", 6);
+
+        // Assign 1 to 3
+        List<String> flights = List.of("AA123");
+        Assignment assignmentD1 = new Assignment("AmericanAirlines", flights, 3);
+
+        counterRepository.assignCounterAssignment("D", assignmentD1);
+
+        // Assign 4 to 6
+        List<String> flights2 = List.of("AA124");
+        Assignment assignmentD2 = new Assignment("AmericanAirlines", flights2, 3);
+        counterRepository.assignCounterAssignment("D", assignmentD2);
+
+        // Add 5 passengers to the queue of 4 to 6
+        for (int i = 0; i < 5; i++) {
+            counterRepository.addPassengerToQueue(new Range(4, 6), "XYZ" + i);
+        }
+
+        // Checkin 4 to 6
+        List<Optional<String>> result = counterRepository.checkinCounters("D", 4, "AmericanAirlines");
+
+        // validate the result
+        Assertions.assertEquals(3, result.size());
+        Assertions.assertTrue(result.get(0).isPresent());
+        Assertions.assertEquals("XYZ0", result.get(0).get());
+
+        Assertions.assertTrue(result.get(1).isPresent());
+        Assertions.assertEquals("XYZ1", result.get(1).get());
+
+        Assertions.assertTrue(result.get(2).isPresent());
+        Assertions.assertEquals("XYZ2", result.get(2).get());
+
+        // Validate passengers are removed from the queue
+        Assertions.assertFalse(counterRepository.hasPassengerInCounter(new Range(4, 6), "XYZ0"));
+        Assertions.assertFalse(counterRepository.hasPassengerInCounter(new Range(4, 6), "XYZ1"));
+        Assertions.assertFalse(counterRepository.hasPassengerInCounter(new Range(4, 6), "XYZ2"));
+
+        // Checkin 4 to 6, as there are only 2 passengers left, the last one should be empty
+        result = counterRepository.checkinCounters("D", 4, "AmericanAirlines");
+
+        // validate the result
+        Assertions.assertEquals(3, result.size());
+        Assertions.assertTrue(result.get(0).isPresent());
+        Assertions.assertEquals("XYZ3", result.get(0).get());
+
+        Assertions.assertTrue(result.get(1).isPresent());
+        Assertions.assertEquals("XYZ4", result.get(1).get());
+
+        Assertions.assertTrue(result.get(2).isEmpty());
+
+        // Validate passengers are removed from the queue
+        Assertions.assertFalse(counterRepository.hasPassengerInCounter(new Range(4, 6), "XYZ3"));
+        Assertions.assertFalse(counterRepository.hasPassengerInCounter(new Range(4, 6), "XYZ4"));
+    }
+
 }
