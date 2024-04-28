@@ -89,7 +89,7 @@ public class AdminClient {
                         .build();
                 try {
                     CounterRange counterRange = stub.addCounters(addCountersRequest);
-                    int range = counterRange.getTo() - counterRange.getFrom();
+                    int range = counterRange.getTo() - counterRange.getFrom() + 1;
                     System.out.println(range + " new counters (" + counterRange.getFrom() + "-" + counterRange.getTo() + ") in Sector " + sector + " added successfully");
                 }catch (RuntimeException e){
                     Status status= Status.fromThrowable(e);
