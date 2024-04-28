@@ -157,7 +157,7 @@ public class EventsClient {
                 stubRegister.register(registerRequest, responseObserver);
                 // block
                 try {
-                    countDownLatch.wait();
+                    countDownLatch.await();
                 } catch (InterruptedException e) {
                     logger.error(e.getMessage());
                     return;
