@@ -65,7 +65,7 @@ public class PassengerClient {
                     switch (fetchCounterResponse.getStatus()) {
                         case FLIGHT_STATUS_ASSIGNED:
                             System.out.println("Flight " + fetchCounterResponse.getFlight() + " from " + fetchCounterResponse.getAirline() + " is now checking in at counters ("
-                                    + fetchCounterResponse.getCounters().getFrom() + "- " + fetchCounterResponse.getCounters().getTo() + ") in Sector " + fetchCounterResponse.getSector()
+                                    + fetchCounterResponse.getCounters().getFrom() + "-" + fetchCounterResponse.getCounters().getTo() + ") in Sector " + fetchCounterResponse.getSector()
                                     + " with " + fetchCounterResponse.getPassengersInQueue() + " people in line");
                             break;
                         case FLIGHT_STATUS_UNASSIGNED:
