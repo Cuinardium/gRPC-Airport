@@ -62,24 +62,20 @@ public class QueryClient {
     private static void executeAction(String action, QueryServiceGrpc.QueryServiceBlockingStub stub) throws IOException {
         String outPath = Optional.ofNullable(System.getProperty("outPath")).orElseThrow(IllegalArgumentException::new);
         switch (action) {
-            case "counters":
-
-                CountersRequest countersRequestEmpty = CountersRequest.newBuilder().build();
-                try {
-                    CountersResponse countersResponseEmpty = stub.counters(countersRequestEmpty);
-                    outputCountersFile(outPath, countersResponseEmpty.getCountersList());
-                }catch (RuntimeException e){
-                    Status status= Status.fromThrowable(e);
-                    System.out.println("Error: " + status.getDescription());
-                }
-                break;
 
             case "queryCounters":
-                String sectorCounter = Optional.ofNullable(System.getProperty("sector")).orElseThrow(IllegalArgumentException::new);
-                CountersRequest countersRequest = CountersRequest
-                        .newBuilder()
-                        .setSectorName(sectorCounter)
-                        .build();
+                String sectorCounter = System.getProperty("sector");
+                CountersRequest countersRequest;
+                if(sectorCounter != null) {
+                    countersRequest = CountersRequest
+                            .newBuilder()
+                            .setSectorName(sectorCounter)
+                            .build();
+                }else {
+                    countersRequest = CountersRequest
+                            .newBuilder()
+                            .build();
+                }
                 try {
                     CountersResponse countersResponse = stub.counters(countersRequest);
                     outputCountersFile(outPath, countersResponse.getCountersList());
