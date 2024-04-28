@@ -9,6 +9,9 @@ This system has 5 services:
 * Airline Notification Service
 * Counter Query Service
 
+
+It is required for this project to have <u>java 17</u> installed as JDK.
+
 ## Installation
 
 Clone the project and execute the following command:
@@ -45,39 +48,47 @@ chmod u+x ./queryClient.sh
 
 Now everything is ready to use
 
-We can run the server by running the following command:
+### Server
+
+First we have to enter the folder tpe1-g4-server-1.0-SNAPSHOT
+
+Then we can run the server by executing the following command:
 ```
     ./run-server.sh
 ```
 
-Then we can run the clients in the following ways:
+### Clients 
 
-### Airport Administration Service
+First we have to enter the folder tpe1-g4-client-1.0-SNAPSHOT
+
+Then we can run the clients executing the following commands:
+
+#### Airport Administration Service
 ```
     ./adminClient.sh -DserverAddress=xx.xx.xx.xx:yyyy -Daction=actionName 
 [ -Dsector=sectorName | -Dcounters=counterCount | -DinPath=manifestPath ]
 ```
 
-### Counter Reservation Service
+#### Counter Reservation Service
 ```
     ./counterClient.sh -DserverAddress=xx.xx.xx.xx:yyyy -Daction=actionName 
     [ -Dsector=sectorName | -DcounterFrom=fromVal | -DcounterTo=toVal | 
     -Dflights=flights | -Dairline=airlineName | -DcounterCount=countVal ]
 ```
 
-### Passenger Check-in Service
+#### Passenger Check-in Service
 ```
     ./passengerClient.sh -DserverAddress=xx.xx.xx.xx:yyyy -Daction=actionName 
     [ -Dbooking=booking | -Dsector=sectorName | -Dcounter=counterNumber ]
 ```
 
-### Airline Notification Service
+#### Airline Notification Service
 ```
     ./eventsClient.sh -DserverAddress=xx.xx.xx.xx:yyyy -Daction=actionName 
     -Dairline=airlineName
 ```
 
-### Counter Query Service
+#### Counter Query Service
 ```
     ./queryClient.sh -DserverAddress=xx.xx.xx.xx:yyyy -Daction=actionName 
     -DoutPath=query.txt [ -Dsector=sectorName | -Dairline=airlineName ]
