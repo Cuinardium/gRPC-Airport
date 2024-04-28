@@ -379,11 +379,11 @@ public class CounterRepositoryImpl implements CounterRepository {
         } finally {
             passengerCountersLock.readLock().unlock();
         }
-
+        CountersRange toFree;
         sectorCountersLock.writeLock().lock();
         try {
             TreeSet<CountersRange> set = sectorCounters.get(sectorName);
-            CountersRange toFree = maybeToFreeCounterRange.get();
+            toFree = maybeToFreeCounterRange.get();
 
             set.remove(toFree);
             int newFrom = toFree.range().from();
@@ -406,12 +406,11 @@ public class CounterRepositoryImpl implements CounterRepository {
                 newTo = maybeAfter.get().range().to();
             }
             set.add(new CountersRange(new Range(newFrom, newTo)));
-
         } finally {
             sectorCountersLock.writeLock().unlock();
         }
         tryPendingAssignments(sectorName);
-        return null;
+        return toFree;
     }
 
     @Override
