@@ -102,5 +102,10 @@ We also provided a script for testing the overall functionality of the project.
 
 To run this test, the server must be running. Then execute the following command:
 ```
-    ./script.sh
+    ./manual_tests/allFeatures.sh
 ```
+Also, there is a script for checking the server events. To run this test, the server must be running. Then execute the following command:
+```
+    ./manual_tests/commandsEvent.sh
+```
+All CSVs created for the testing the features will be in the directory manual_tests.
