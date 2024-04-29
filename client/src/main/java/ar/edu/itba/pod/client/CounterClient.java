@@ -215,7 +215,7 @@ public class CounterClient {
                         String flight = checkInInfo.getFlight();
                         System.out.println("Check-in successful of " + booking + " for flight " + flight + " at counter " + counter);
                     }
-                    for (int i = 1; i <= idleCounterCount; i++) {
+                    for (int i = 0; i < idleCounterCount; i++) {
                         System.out.println("Counter " + (counter + i) + " is idle");
                     }
                 } catch (RuntimeException e) {
