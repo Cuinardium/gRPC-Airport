@@ -95,3 +95,12 @@ Then we can run the clients executing the following commands:
     ./queryClient.sh -DserverAddress=xx.xx.xx.xx:yyyy -Daction=actionName 
     -DoutPath=query.txt [ -Dsector=sectorName | -Dairline=airlineName ]
 ```
+
+## Manual Tests
+
+We also provided a script for testing the overall functionality of the project. 
+
+To run this test, the server must be running. Then execute the following command:
+```
+    ./script.sh
+```
