@@ -421,7 +421,7 @@ public class CounterService extends CounterServiceGrpc.CounterServiceImplBase {
 
         RegisterResponse.Builder assignationEventBuilder = RegisterResponse.newBuilder();
 
-        boolean isAssigned = assignedCounterRangeOrQueuedAssignments.second() == 0;
+        boolean isAssigned = assignedCounterRangeOrQueuedAssignments.first() != null;
         if (isAssigned) {
             Range range = assignedCounterRangeOrQueuedAssignments.first();
             responseBuilder
