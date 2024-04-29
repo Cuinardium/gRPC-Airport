@@ -398,15 +398,16 @@ public class CounterRepositorySynchronized implements CounterRepository {
             return;
         }
 
-        Queue<Assignment> assignments = assignmentQueues.get(sectorName);
+        List<Assignment> assignments = (List<Assignment>) assignmentQueues.get(sectorName);
         if (assignments.isEmpty()) {
             return;
         }
 
 
         int assignmentsSize = assignments.size();
+        List<Integer> toRemove = new ArrayList<>();
         for(int i = 0; i < assignmentsSize; i++){
-            Assignment assignment = assignments.peek();
+            Assignment assignment = assignments.get(i);
             Sector sector = sectors.get(sectorName);
             Optional<CountersRange> maybeAvailableCounterRange =
                     sector.countersRangeList().stream()
@@ -419,20 +420,29 @@ public class CounterRepositorySynchronized implements CounterRepository {
 
             // If first pending can't be assigned, then the rest can't be assigned
             if (maybeAvailableCounterRange.isEmpty()){
-                break;
+                continue;
             }
 
             Range assignedRange = assignInfoToAvailableCounterRange(assignment, sector, maybeAvailableCounterRange.get());
-            assignments.poll();
-
+            toRemove.add(i);
             assignment.getOnAssigned().accept(assignedRange);
 
             int pendingAhead = 0;
 
-            for(Assignment pendingAssignment : assignments) {
+            for (int j = 0; j < assignments.size(); j++) {
+                Assignment pendingAssignment = assignments.get(j);
+
+                if (toRemove.contains(j)) {
+                    continue;
+                }
+
                 pendingAssignment.getOnMoved().accept(pendingAhead);
                 pendingAhead++;
             }
+        }
+
+        for (int i = toRemove.size() - 1; i >= 0; i--) {
+            assignments.remove(toRemove.get(i).intValue());
         }
     }
 

@@ -793,7 +793,7 @@ public abstract class CounterRepositoryTest<T extends CounterRepository> {
     }
 
     @Test
-    public void testFreeCountersSuccessWithPendingAssignmentsBlocksIfPendingCannotBeAssigned() throws AlreadyExistsException, FlightAlreadyCheckedInException, FlightAlreadyAssignedException, FlightAlreadyQueuedException, HasPendingPassengersException, UnauthorizedException {
+    public void testFreeCountersSuccessWithPendingAssignmentsDoesNotBlockIfPendingCannotBeAssigned() throws AlreadyExistsException, FlightAlreadyCheckedInException, FlightAlreadyAssignedException, FlightAlreadyQueuedException, HasPendingPassengersException, UnauthorizedException {
 
         counterRepository.addSector("D");
 
@@ -829,16 +829,18 @@ public abstract class CounterRepositoryTest<T extends CounterRepository> {
         Assertions.assertEquals("AmericanAirlines", sector.countersRangeList().get(0).assignedInfo().get().airline());
         Assertions.assertEquals("AA124", sector.countersRangeList().get(0).assignedInfo().get().flights().get(0));
 
+        // The third flight should be assigned
         Assertions.assertEquals(2, sector.countersRangeList().get(1).range().from());
         Assertions.assertEquals(2, sector.countersRangeList().get(1).range().to());
-        Assertions.assertFalse(sector.countersRangeList().get(1).assignedInfo().isPresent());
+        Assertions.assertTrue(sector.countersRangeList().get(1).assignedInfo().isPresent());
+        Assertions.assertEquals("AmericanAirlines", sector.countersRangeList().get(1).assignedInfo().get().airline());
+        Assertions.assertEquals("AA126", sector.countersRangeList().get(1).assignedInfo().get().flights().get(0));
 
         // The rest should be in queue
         List<Assignment> queue = counterRepository.getQueuedAssignments("D").stream().toList();
 
-        Assertions.assertEquals(2, queue.size());
+        Assertions.assertEquals(1, queue.size());
         Assertions.assertEquals("AA125", queue.get(0).flights().get(0));
-        Assertions.assertEquals("AA126", queue.get(1).flights().get(0));
     }
 
     // ---- Queues - Passengers

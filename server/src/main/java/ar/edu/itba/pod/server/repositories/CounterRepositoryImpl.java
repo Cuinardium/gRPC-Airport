@@ -115,13 +115,14 @@ public class CounterRepositoryImpl implements CounterRepository {
             if (!assignmentQueue.containsKey(sectorName)) {
                 return;
             }
-            Queue<Assignment> assignments = assignmentQueue.get(sectorName);
+            List<Assignment> assignments = (List<Assignment>) assignmentQueue.get(sectorName);
             if (assignments.isEmpty()) {
                 return;
             }
             int assignmentsSize = assignments.size();
+            List<Integer> toRemove = new ArrayList<>();
             for(int i = 0; i < assignmentsSize; i++){
-                Assignment assignment = assignments.peek();
+                Assignment assignment = assignments.get(i);
                 TreeSet<CountersRange> set = sectorCounters.get(sectorName);
                 Optional<CountersRange> maybeFreeCounterRange =
                         set.stream().filter(
@@ -135,16 +136,30 @@ public class CounterRepositoryImpl implements CounterRepository {
 
                 Range assignedRange = assignInfoToAvailableCounterRange(assignment, maybeFreeCounterRange.get(), set);
                 newlyAssignedFlights.addAll(assignment.flights());
-                assignments.poll();
+                toRemove.add(i);
                 assignment.getOnAssigned().accept(assignedRange);
 
                 int pendingAhead = 0;
 
-                for(Assignment pendingAssignment : assignments) {
+                for (int j = 0; j < assignments.size(); j++) {
+                    Assignment pendingAssignment = assignments.get(j);
+
+                    if (toRemove.contains(j)) {
+                        continue;
+                    }
+
                     pendingAssignment.getOnMoved().accept(pendingAhead);
                     pendingAhead++;
                 }
             }
+
+            // Remove the assigned assignments
+            for(int i = toRemove.size() - 1; i >= 0; i--) {
+                assignments.remove(toRemove.get(i).intValue());
+            }
+
+
+
         } finally {
             assignmentQueueLock.writeLock().unlock();
             sectorCountersLock.writeLock().unlock();
