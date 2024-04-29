@@ -57,7 +57,9 @@ Then we can run the server by executing the following command:
     ./run-server.sh
 ```
 
-### Clients 
+It is important to know that when the server is running, it is on the port 50051
+
+### Clients
 
 First we have to enter the folder tpe1-g4-client-1.0-SNAPSHOT
 
