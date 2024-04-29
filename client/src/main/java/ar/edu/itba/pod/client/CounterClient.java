@@ -150,7 +150,7 @@ public class CounterClient {
                             break;
                         case ASSIGNATION_STATUS_PENDING:
                             int pending = assignCountersResponse.getPendingAssignations();
-                            System.out.printf(counterCount + " counters in Sector " + sectorName + " is pending with " + pending + " other pendings ahead");
+                            System.out.println(counterCount + " counters in Sector " + sectorName + " is pending with " + pending + " other pendings ahead");
                             break;
                         case ASSIGNATION_STATUS_UNSPECIFIED:
                             // TODO: idk
@@ -204,19 +204,25 @@ public class CounterClient {
                         .setCounterFrom(counterFrom)
                         .setAirline(airline)
                         .build();
-                CheckinCountersResponse checkinCountersResponse = stub.checkinCounters(checkinCountersRequest);
-                List<CheckInInfo> successfulCheckinsList = checkinCountersResponse.getSuccessfulCheckinsList();
-                int idleCounterCount = checkinCountersResponse.getIdleCounterCount();
-                int counter = counterFrom;
-                for (CheckInInfo checkInInfo : successfulCheckinsList) {
-                    counter = checkInInfo.getCounter();
-                    String booking = checkInInfo.getBooking();
-                    String flight = checkInInfo.getFlight();
-                    System.out.println("Check-in successful of " + booking + " for flight " + flight + " at counter " + counter);
+                try {
+                    CheckinCountersResponse checkinCountersResponse = stub.checkinCounters(checkinCountersRequest);
+                    List<CheckInInfo> successfulCheckinsList = checkinCountersResponse.getSuccessfulCheckinsList();
+                    int idleCounterCount = checkinCountersResponse.getIdleCounterCount();
+                    int counter = counterFrom;
+                    for (CheckInInfo checkInInfo : successfulCheckinsList) {
+                        counter = checkInInfo.getCounter();
+                        String booking = checkInInfo.getBooking();
+                        String flight = checkInInfo.getFlight();
+                        System.out.println("Check-in successful of " + booking + " for flight " + flight + " at counter " + counter);
+                    }
+                    for (int i = 1; i <= idleCounterCount; i++) {
+                        System.out.println("Counter " + (counter + i) + " is idle");
+                    }
+                } catch (RuntimeException e) {
+                    Status status = Status.fromThrowable(e);
+                    System.out.println("Error: " + status.getDescription());
                 }
-                for (int i = 1; i <= idleCounterCount; i++) {
-                    System.out.println("Counter " + (counter + i) + " is idle");
-                }
+
                 break;
 
             case "listPendingAssignments":
@@ -225,21 +231,28 @@ public class CounterClient {
                         .newBuilder()
                         .setSectorName(sectorName)
                         .build();
-                ListPendingAssignmentsResponse listPendingAssignmentsResponse = stub.listPendingAssignments(listPendingAssignmentsRequest);
-                List<CounterAssignment> assignmentsList = listPendingAssignmentsResponse.getAssignmentsList();
-                System.out.println("Counters  Airline          Flights");
-                System.out.println("##########################################################");
-                for (CounterAssignment assignment : assignmentsList) {
-                    flightStringBuilder = new StringBuilder();
-                    flights = assignment.getFlightsList().stream().toList();
-                    for (int i = 0; i < flights.size(); ) {
-                        flightStringBuilder.append(flights.get(i));
-                        i++;
-                        if (i < flights.size()) {
-                            flightStringBuilder.append("|");
+
+                try{
+
+                    ListPendingAssignmentsResponse listPendingAssignmentsResponse = stub.listPendingAssignments(listPendingAssignmentsRequest);
+                    List<CounterAssignment> assignmentsList = listPendingAssignmentsResponse.getAssignmentsList();
+                    System.out.println("Counters  Airline          Flights");
+                    System.out.println("##########################################################");
+                    for (CounterAssignment assignment : assignmentsList) {
+                        flightStringBuilder = new StringBuilder();
+                        flights = assignment.getFlightsList().stream().toList();
+                        for (int i = 0; i < flights.size(); ) {
+                            flightStringBuilder.append(flights.get(i));
+                            i++;
+                            if (i < flights.size()) {
+                                flightStringBuilder.append("|");
+                            }
                         }
+                        System.out.printf("%-10s%-18s%-12s\n", assignment.getCounterCount(), assignment.getAirline(), flightStringBuilder);
                     }
-                    System.out.printf("%-10s%-18s%-12s\n", assignment.getCounterCount(), assignment.getAirline(), flightStringBuilder);
+                } catch (RuntimeException e) {
+                    Status status = Status.fromThrowable(e);
+                    System.out.println("Error: " + status.getDescription());
                 }
 
                 break;
