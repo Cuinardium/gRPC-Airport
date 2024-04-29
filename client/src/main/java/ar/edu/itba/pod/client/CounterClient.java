@@ -172,19 +172,25 @@ public class CounterClient {
                         .setCounterFrom(counterFrom)
                         .setAirline(airline)
                         .build();
-                FreeCountersResponse freeCountersResponse = stub.freeCounters(freeCountersRequest);
-                int freedCounters = freeCountersResponse.getFreedCounters();
-                counterRange = freeCountersResponse.getCounterRange();
-                flightStringBuilder = new StringBuilder();
-                flights = freeCountersResponse.getFlightsList().stream().toList();
-                for (int i = 0; i < flights.size(); ) {
-                    flightStringBuilder.append(flights.get(i));
-                    i++;
-                    if (i < flights.size()) {
-                        flightStringBuilder.append("|");
+
+                try {
+                    FreeCountersResponse freeCountersResponse = stub.freeCounters(freeCountersRequest);
+                    int freedCounters = freeCountersResponse.getFreedCounters();
+                    counterRange = freeCountersResponse.getCounterRange();
+                    flightStringBuilder = new StringBuilder();
+                    flights = freeCountersResponse.getFlightsList().stream().toList();
+                    for (int i = 0; i < flights.size(); ) {
+                        flightStringBuilder.append(flights.get(i));
+                        i++;
+                        if (i < flights.size()) {
+                            flightStringBuilder.append("|");
+                        }
                     }
+                    System.out.println("Ended check-in for flights " + flightStringBuilder + " on " + freedCounters + " counters (" + counterRange.getFrom() + "-" + counterRange.getTo() + ") in Sector " + sectorName);
+                } catch (RuntimeException e) {
+                    Status status = Status.fromThrowable(e);
+                    System.out.println("Error: " + status.getDescription());
                 }
-                System.out.println("Ended check-in for flights " + flightStringBuilder + " on " + freedCounters + " counters (" + counterRange.getFrom() + "-" + counterRange.getTo() + ") in Sector " + sectorName);
 
                 break;
 
